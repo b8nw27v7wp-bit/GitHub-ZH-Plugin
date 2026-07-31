@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         GitHub 中文化
 // @namespace    https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin
-// @version      1.0.0
-// @description  GitHub 界面中文化插件 — 轻量、实时、智能
+// @version      1.1.0
+// @description  GitHub 界面中文化插件 — 轻量、实时、智能。支持动态内容翻译、描述一键翻译、未命中词条收集。
 // @author       b8nw27v7wp-bit
 // @license      MIT
 // @match        https://github.com/*
@@ -24,27 +24,41 @@
     const CONFIG = {
         LANG: 'zh-CN',
         DEV: false,
+        VERSION: '1.1.0',
+        // 翻译引擎（仓库描述远程翻译，可自由替换）
+        TRANS_ENGINES: {
+            mymemory: {
+                name: 'MyMemory',
+                url: 'https://api.mymemory.translated.net',
+                getRequestData: (text) => ({
+                    q: text,
+                    langpair: 'en|zh-CN',
+                }),
+                parseResponse: (data) => data?.responseData?.translatedText || '',
+            },
+        },
         OBSERVER_CONFIG: {
             childList: true,
             subtree: true,
             characterData: true,
             attributeFilter: ['value', 'placeholder', 'aria-label', 'data-confirm'],
         },
-        // 深色主题下的样式变量
-        STYLES: `
-            :root { --gzh-primary: #58a6ff; --gzh-bg: #f6f8fa; --gzh-border: #d0d7de; }
-            @media (prefers-color-scheme: dark) {
-                :root { --gzh-primary: #58a6ff; --gzh-bg: #161b22; --gzh-border: #30363d; }
-            }
-        `,
     };
 
     // ==================== 状态管理 ====================
     const State = {
+        // 功能开关（持久化）
+        featureSet: {
+            enable_RegExp: GM_getValue('enable_RegExp', true),
+            enable_missedTerms: GM_getValue('enable_missedTerms', false),
+            enable_transDesc: GM_getValue('enable_transDesc', true),
+        },
         pageConfig: null,
         currentURL: location.href,
         observer: null,
         initDone: false,
+        menuIds: {},          // 动态菜单 ID
+        translateButton: null,
     };
 
     // ==================== 工具函数 ====================
@@ -74,10 +88,8 @@
         // 认证页面
         if (document.body?.classList.contains('session-authentication')) return 'session-authentication';
 
-        // 首页
-        if (pathname === '/') {
-            return document.body?.classList.contains('logged-in') ? 'dashboard' : 'dashboard';
-        }
+        // 首页（登录/未登录）
+        if (pathname === '/') return 'dashboard';
 
         // 仓库页面
         const repoMatch = pathname.match(LOCALES.conf.rePagePathRepo);
@@ -101,9 +113,9 @@
 
     // ==================== 页面配置构建 ====================
     function buildPageConfig(pageType) {
-        const zh = LOCALES[CONFIG.LANG] || LOCALES.zh || {};
+        // 词典为扁平结构：LOCALES.public / LOCALES.repository / LOCALES.settings ...
         const publicZh = LOCALES.public || {};
-        const pageZh = zh[pageType] || {};
+        const pageZh = LOCALES[pageType] || {};
 
         // 合并忽略选择器
         const allIgnoreMutation = [
@@ -118,12 +130,12 @@
         return {
             pageType,
             pathname: location.pathname,
-            // 静态翻译词典（页面特有 + 公共）
+            // 静态翻译词典（公共 + 页面特定，页面特定优先）
             staticDict: {
                 ...(publicZh.static || {}),
                 ...(pageZh.static || {}),
             },
-            // 正则翻译规则
+            // 正则翻译规则（页面特定优先）
             regexpRules: [
                 ...(pageZh.regexp || []),
                 ...(publicZh.regexp || []),
@@ -135,7 +147,7 @@
             ignoreMutationSelectors: allIgnoreMutation.join(', '),
             ignoreSelectors: allIgnoreStatic.join(', '),
             // 是否监视 characterData
-            characterData: LOCALES.conf.characterDataPages.includes(pageType),
+            characterData: (LOCALES.conf.characterDataPages || []).includes(pageType),
         };
     }
 
@@ -168,11 +180,18 @@
         }
 
         // 正则匹配
-        for (const [pattern, replacement] of cfg.regexpRules) {
-            const result = cleaned.replace(pattern, replacement);
-            if (result !== cleaned) {
-                return text.replace(trimmed, result);
+        if (State.featureSet.enable_RegExp) {
+            for (const [pattern, replacement] of cfg.regexpRules) {
+                const result = cleaned.replace(pattern, replacement);
+                if (result !== cleaned) {
+                    return text.replace(trimmed, result);
+                }
             }
+        }
+
+        // 记录未命中词条（贡献翻译用）
+        if (State.featureSet.enable_missedTerms) {
+            MissedTermsManager.record(cleaned);
         }
 
         return false;
@@ -210,7 +229,12 @@
 
     function handleTextNode(node) {
         if (node.length > 500) return;
-        transAttrs(node, 'data');
+        const text = node.data;
+        if (!text) return;
+        const result = transText(text);
+        if (result && result !== text) {
+            node.data = result;
+        }
     }
 
     function handleElementNode(node) {
@@ -289,6 +313,131 @@
         if (result) document.title = result;
     }
 
+    // ==================== 仓库描述翻译 ====================
+    function transDesc(selector) {
+        if (!State.featureSet.enable_transDesc) return;
+        const element = document.querySelector(selector);
+        if (!element || element.nextElementSibling?.classList.contains('translate-button')) return;
+
+        const button = document.createElement('div');
+        button.className = 'translate-button';
+        button.textContent = '📖 翻译';
+        button.title = '使用 MyMemory 翻译此描述';
+        element.after(button);
+        State.translateButton = button;
+
+        button.addEventListener('click', safe(async () => {
+            if (button.disabled) return;
+            button.disabled = true;
+            button.textContent = '⏳ 翻译中...';
+
+            try {
+                const text = element.textContent.trim();
+                const engine = CONFIG.TRANS_ENGINES.mymemory;
+                const params = new URLSearchParams(engine.getRequestData(text));
+                const res = await fetch(`${engine.url}/get?${params}`);
+                const data = await res.json();
+                const result = engine.parseResponse(data);
+
+                if (result && result !== text) {
+                    const box = document.createElement('div');
+                    box.className = 'translation-result';
+                    box.textContent = result;
+                    button.after(box);
+                } else {
+                    button.textContent = '❌ 翻译失败';
+                }
+            } catch (err) {
+                console.error('[GitHub 中文化] 描述翻译失败:', err);
+                button.textContent = '❌ 翻译失败';
+            }
+        }, '描述翻译'));
+    }
+
+    // ==================== 未命中词条收集器 ====================
+    const MissedTermsManager = {
+        data: GM_getValue('missedTerms', {}),
+
+        record(text) {
+            if (!text || text.length > 60) return;
+            const path = location.pathname;
+            if (!this.data[path]) this.data[path] = {};
+            this.data[path][text] = '';
+            // 防抖保存
+            clearTimeout(this._timer);
+            this._timer = setTimeout(() => {
+                GM_setValue('missedTerms', this.data);
+            }, 2000);
+        },
+
+        getStats() {
+            const paths = Object.keys(this.data);
+            const terms = paths.reduce((sum, p) => sum + Object.keys(this.data[p]).length, 0);
+            return { paths: paths.length, terms };
+        },
+
+        exportJSON() {
+            return JSON.stringify(this.data, null, 2);
+        },
+
+        clear() {
+            this.data = {};
+            GM_setValue('missedTerms', {});
+        },
+    };
+
+    // ==================== 菜单命令 ====================
+    function setupMenuCommands() {
+        // 1. 正则翻译开关
+        createToggleMenu('正则翻译', 'enable_RegExp');
+        // 2. 描述翻译开关
+        createToggleMenu('描述翻译', 'enable_transDesc');
+        // 3. 未命中词条收集器开关（动态菜单）
+        refreshMissedTermsMenu();
+    }
+
+    function createToggleMenu(label, key) {
+        const getLabel = () => `${State.featureSet[key] ? '禁用' : '启用'} ${label}`;
+        const toggle = () => {
+            const newState = !State.featureSet[key];
+            State.featureSet[key] = newState;
+            GM_setValue(key, newState);
+            GM_notification(`${label}已${newState ? '启用' : '禁用'}`);
+            if (newState && State.pageConfig) safe(traverseNode, '菜单触发遍历')(document.body);
+        };
+        GM_registerMenuCommand(getLabel(), toggle);
+    }
+
+    function refreshMissedTermsMenu() {
+        const label = `${State.featureSet.enable_missedTerms ? '禁用' : '启用'} 未命中词条收集`;
+        GM_registerMenuCommand(label, () => {
+            State.featureSet.enable_missedTerms = !State.featureSet.enable_missedTerms;
+            GM_setValue('enable_missedTerms', State.featureSet.enable_missedTerms);
+            GM_notification(State.featureSet.enable_missedTerms ? '已启用词条收集' : '已禁用词条收集');
+            refreshMissedTermsMenu();
+        });
+
+        if (State.featureSet.enable_missedTerms) {
+            const stats = MissedTermsManager.getStats();
+            if (stats.terms > 0) {
+                GM_registerMenuCommand(`📥 导出词条 (${stats.terms}条)`, () => {
+                    const blob = new Blob([MissedTermsManager.exportJSON()], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `github_zh_missed_${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+                GM_registerMenuCommand('🗑️ 清空词条', () => {
+                    MissedTermsManager.clear();
+                    GM_notification('词条已清空');
+                    refreshMissedTermsMenu();
+                });
+            }
+        }
+    }
+
     // ==================== MutationObserver ====================
     function setupObserver() {
         if (State.observer) State.observer.disconnect();
@@ -299,6 +448,10 @@
                 if (location.href !== State.currentURL) {
                     State.currentURL = location.href;
                     updatePageConfig('URL变化');
+                    if (State.pageConfig) {
+                        transTitle();
+                        transDesc(getDescSelector());
+                    }
                 }
 
                 if (!State.pageConfig) return;
@@ -346,11 +499,23 @@
         return false;
     }
 
+    // ==================== 描述选择器 ====================
+    function getDescSelector() {
+        const type = State.pageConfig?.pageType;
+        if (type === 'repository') return '.f4.tmp-my-3';
+        if (type === 'gist') return '.gist-content [itemprop="about"]';
+        return null;
+    }
+
     // ==================== Turbo 事件 ====================
     function setupTurboEvents() {
         document.addEventListener('turbo:load', safe(() => {
             if (!State.pageConfig) return;
             transTitle();
+            if (State.pageConfig) {
+                safe(traverseNode, 'turbo遍历')(document.body);
+                transDesc(getDescSelector());
+            }
         }, 'turbo:load'));
     }
 
@@ -359,6 +524,7 @@
         checkLocalesLoaded();
         initLangEnv();
         injectStyles();
+        setupMenuCommands();
         setupInitTrans();
         setupTurboEvents();
         State.initDone = true;
@@ -375,7 +541,26 @@
     }
 
     function injectStyles() {
-        GM_addStyle(CONFIG.STYLES);
+        GM_addStyle(`
+            .translate-button {
+                display: inline-block;
+                color: var(--fgColor-accent, #0969da);
+                font-size: small;
+                cursor: pointer;
+                margin-top: 5px;
+                user-select: none;
+            }
+            .translate-button:hover { text-decoration: underline; }
+            .translation-result {
+                margin-top: 10px;
+                padding: 8px 12px;
+                border: 1px solid var(--borderColor-default, #d0d7de);
+                border-radius: 6px;
+                background: var(--bgColor-muted, #f6f8fa);
+                white-space: pre-wrap;
+                line-height: 1.5;
+            }
+        `);
     }
 
     function setupInitTrans() {
@@ -383,6 +568,8 @@
             updatePageConfig('首次加载');
             if (State.pageConfig) {
                 safe(traverseNode, '首次遍历')(document.body);
+                transTitle();
+                transDesc(getDescSelector());
             }
             setupObserver();
         }
