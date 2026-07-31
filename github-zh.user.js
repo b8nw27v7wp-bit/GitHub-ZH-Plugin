@@ -104,6 +104,11 @@
             return pathname.includes('/stars') ? 'page-profile/stars' : 'page-profile';
         }
 
+        // 仓库主页 /user/repo（无子路径）
+        if (/^\/[^/]+\/[^/]+$/.test(pathname)) {
+            return 'repository';
+        }
+
         // 通用页面
         const pathMatch = pathname.match(LOCALES.conf.rePagePath);
         if (pathMatch) return pathMatch[1] || pathMatch.slice(-1)[0];

@@ -138,6 +138,10 @@ ok('纯数字不翻译', staticTranslate('12345', 'repository') === null);
 console.log('\n[页面类型正则]');
 ok('仓库路径 /user/repo/issues → repository/issues',
     '/user/repo/issues'.match(LOCALES.conf.rePagePathRepo)?.[1] === 'issues');
+ok('仓库主页 /user/repo 两段路径正则匹配（detectPageType 仓库主页检测）',
+    /^\/[^/]+\/[^/]+$/.test('/user/repo'));
+ok('用户主页 /user 单段路径不匹配仓库主页正则',
+    !/^\/[^/]+\/[^/]+$/.test('/user'));
 ok('仓库路径 /user/repo/pull/1 → repository/pull',
     '/user/repo/pull/1'.match(LOCALES.conf.rePagePathRepo)?.[1] === 'pull');
 ok('仓库路径 /user/repo/settings → repository/settings',
