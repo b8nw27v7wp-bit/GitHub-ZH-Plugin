@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         GitHub 中文化
-// @namespace    https://github.com/your-username/github-zh
+// @namespace    https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin
 // @version      1.0.0
 // @description  GitHub 界面中文化插件 — 轻量、实时、智能
-// @author       YourName
+// @author       b8nw27v7wp-bit
 // @license      MIT
 // @match        https://github.com/*
 // @match        https://gist.github.com/*
 // @match        https://www.githubstatus.com/*
-// @require      https://raw.githubusercontent.com/your-username/github-zh/main/locales.js
+// @require      https://raw.githubusercontent.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/main/locales.js
 // @run-at       document-start
 // @grant        GM_addStyle
 // @grant        GM_getValue

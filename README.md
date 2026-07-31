@@ -17,9 +17,7 @@
 1. 安装 [Tampermonkey](https://www.tampermonkey.net/) 或 [Violentmonkey](https://violentmonkey.github.io/)
 2. 点击下方安装链接：
 
-**[📦 点击安装脚本](https://raw.githubusercontent.com/你的用户名/github-zh/main/github-zh.user.js)**
-
-> ⚠️ 安装前请将链接中的"你的用户名"替换为实际 GitHub 用户名
+**[📦 点击安装脚本](https://raw.githubusercontent.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/main/github-zh.user.js)**
 
 ## 🔧 工作原理
 
