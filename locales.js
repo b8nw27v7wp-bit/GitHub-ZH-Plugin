@@ -22,34 +22,107 @@ const LOCALES = {
         // 需要忽略 MutationObserver 的元素（避免翻译代码、搜索框等）
         ignoreMutationSelectors: {
             '*': [
-                'header.GlobalNav',
-                'qbsearch-input',
-                '.highlight',
-                '.notranslate',
-                '[translate="no"]',
-                '.cm-scroller',
+                'header.GlobalNav',           // React 版全局导航
+                'header.GlobalNav [class*="Search-module__"]', // React 版顶部搜索按钮
+                'qbsearch-input',             // 顶部搜索框自定义元素
+                '.highlight',                 // 代码高亮区域
+                '.notranslate',               // 标记为不翻译的元素
+                '[translate="no"]',           // HTML translate 属性标记
+                '.cm-scroller',               // CodeMirror 代码编辑器
+                'div.QueryBuilder-StyledInputContainer', // 顶部搜索栏关键词
+                '#qb-input-query span',       // 搜索页面搜索栏关键词
+                'div.styled-input-content',   // 筛选条
             ],
-            'repository/blob': ['td.blob-code', 'div.diff-text-inner', 'span.PRIVATE_TreeView-item-content-text'],
-            'repository/pull': ['td.blob-code', '.js-full-logs-container'],
-            'repository/commit': ['td.blob-code', 'div.diff-text-inner'],
-            'repository/tree': ['article.markdown-body', 'tr.react-directory-row'],
-            'repository/actions': ['table.highlight', '.js-full-logs-container'],
+            'repository/blob': [
+                'td.blob-code',               // 代码差异 分屏/同屏
+                'div.diff-text-inner',        // 代码差异内容
+                'span.PRIVATE_TreeView-item-content-text', // 文件树文件夹/文件名
+                '#highlighted-line-menu-positioner', // 代码视图行菜单
+                '#repos-sticky-header',       // 代码视图置顶标题
+                'nav[data-testid="breadcrumbs"]', // 面包屑导航
+                'div[data-testid="breadcrumbs-filename"]', // 面包屑导航文件名部分
+            ],
+            'repository/pull': [
+                'td.blob-code',               // 代码差异 分屏/同屏
+                '.js-full-logs-container',    // 工作流运行日志
+                'span.PRIVATE_TreeView-item-content-text', // 文件树文件夹/文件名
+                'span.ActionList-item-label', // PR 文件树文件夹/文件名
+            ],
+            'repository/commit': [
+                'td.blob-code',               // 代码差异 分屏/同屏
+                'div.diff-text-inner',        // 代码差异内容
+                'span.PRIVATE_TreeView-item-content-text', // 文件树文件夹/文件名
+            ],
+            'repository/compare': [
+                'tbody',                      // 代码差异
+                '.js-preview-body',           // 新建拉取请求正文编辑器预览
+                'span.PRIVATE_TreeView-item-content-text', // 文件树文件夹/文件名
+            ],
+            'repository/tree': [
+                'article.markdown-body',      // Markdown 正文
+                'tr.react-directory-row',     // 文件列表中文件夹和文件条目
+                'nav[data-testid="breadcrumbs"]', // 面包屑导航
+                'div[data-testid="breadcrumbs-filename"]', // 面包屑导航文件名部分
+            ],
+            'repository/actions': [
+                'table.highlight',            // 工作流程文件源码视图
+                '.js-full-logs-container',    // 工作流运行日志
+            ],
+            'repository/releases': ['.Box-footer'], // 附件清单
+            'repository/issues': [
+                'div[aria-live="polite"]>div.markdown-body', // 新建议题正文编辑器预览
+                '.markdown-body[data-team-hovercards-enabled="true"]', // 议题正文及编辑器预览
+            ],
+            'repository/new': ['.cm-scroller'], // 代码编辑器
+            'repository/edit': ['.cm-scroller', 'table'], // 代码编辑器 + 代码差异预览
         },
 
         // 需要忽略的静态元素（永远不翻译）
         ignoreSelectors: {
-            'page-profile': ['span.p-nickname', 'span.p-name'],
-            'repository': [
-                '.AppHeader-context-full',
-                'strong[itemprop="name"]',
-                'p.f4.my-3',
-                'article.markdown-body',
+            'page-profile': [
+                'span.p-nickname',            // 用户昵称
+                'span.p-name',                // 用户名称
             ],
-            'repository/tree': ['span.PRIVATE_TreeView-item-content-text', 'a[itemprop="name codeRepository"]'],
+            'repository': [
+                '.AppHeader-context-full',    // 顶部 <username>/<repo_name>
+                'strong[itemprop="name"]',    // 仓库名称
+                'p.f4.my-3',                  // 仓库简介正文
+                'article.markdown-body',      // README 正文
+                '#translate-me',              // 翻译按钮标记
+                '.my-3.d-flex.flex-items-center', // 仓库简介中的链接
+            ],
+            'repository/tree': [
+                'span.PRIVATE_TreeView-item-content-text', // 文件树项目名称
+                'a[itemprop="name codeRepository"]',       // 仓库名称
+                'div.react-tree-show-tree-items',          // 左侧文件树项目
+            ],
+            'repository/blob': [
+                '[id^="offset"]',             // 符号引用
+                '#filter-results',            // 右侧符号筛选
+                '.Text__StyledText-sc-17v1xeu-0', // 右侧符号筛选
+            ],
+            'repository/commit': [
+                'span.ws-pre-wrap',           // 提交说明
+                "h4[class^='Title-module__heading']", // 提交标题
+            ],
         },
 
         // 需要翻译文本节点变化的页面类型
-        characterDataPages: ['repository/new', 'repository/edit', 'repository/blob', 'repository/pull', 'repository/issues'],
+        characterDataPages: [
+            'repository/new',                // 新建文件
+            'repository/edit',               // 编辑文件
+            'repository/blob',               // 代码视图
+            'repository/pull',               // PR 差异
+            'repository/commit',             // 提交差异
+            'repository/issues',             // 议题编辑
+            'repository/compare',            // 比较页面
+            'new',                           // 新建仓库
+            'new/import',                    // 导入仓库
+            'marketplace',                   // 市场
+            'homepage',                      // 首页
+            'copilot',                       // Copilot
+            'pulls',                         // 拉取请求列表
+        ],
     },
 
     // ==================== 公共翻译（所有页面通用） ====================
@@ -107,6 +180,300 @@ const LOCALES = {
             'Closed': '已关闭',
             'Merged': '已合并',
 
+            // 常用操作
+            'Accept': '接受',
+            'Activate': '激活',
+            'Add': '添加',
+            'Apply': '应用',
+            'Approve': '批准',
+            'Archive': '归档',
+            'Block': '屏蔽',
+            'Browse': '浏览',
+            'Change': '更改',
+            'Check': '检查',
+            'Choose': '选择',
+            'Clear': '清除',
+            'Clone': '克隆',
+            'Collapse': '折叠',
+            'Comment': '评论',
+            'Compare': '比较',
+            'Configure': '配置',
+            'Connect': '连接',
+            'Continue': '继续',
+            'Convert': '转换',
+            'Customize': '自定义',
+            'Deploy': '部署',
+            'Disable': '禁用',
+            'Enable': '启用',
+            'Export': '导出',
+            'Find': '查找',
+            'Follow': '关注',
+            'Fork': '复刻',
+            'Generate': '生成',
+            'Import': '导入',
+            'Install': '安装',
+            'Invite': '邀请',
+            'Join': '加入',
+            'Label': '标签',
+            'Learn': '学习',
+            'Lock': '锁定',
+            'Manage': '管理',
+            'Merge': '合并',
+            'Monitor': '监控',
+            'Move': '移动',
+            'Order': '排序',
+            'Organize': '组织',
+            'Pin': '置顶',
+            'Preview': '预览',
+            'Private': '私有',
+            'Protect': '保护',
+            'Publish': '发布',
+            'Pull': '拉取',
+            'Push': '推送',
+            'Read': '读取',
+            'Rebase': '变基',
+            'Release': '发布',
+            'Remove': '移除',
+            'Rename': '重命名',
+            'Replace': '替换',
+            'Request': '请求',
+            'Reset': '重置',
+            'Resolve': '解决',
+            'Restore': '恢复',
+            'Revert': '回退',
+            'Review': '审查',
+            'Select': '选择',
+            'Send': '发送',
+            'Share': '分享',
+            'Sign': '签名',
+            'Start': '开始',
+            'Stop': '停止',
+            'Suspend': '挂起',
+            'Switch': '切换',
+            'Tag': '标签',
+            'Test': '测试',
+            'Transfer': '转让',
+            'Unarchive': '取消归档',
+            'Undo': '撤销',
+            'Unfollow': '取消关注',
+            'Unlock': '解锁',
+            'Unpin': '取消置顶',
+            'Verify': '验证',
+            'Watch': '关注',
+
+            // 常用短语
+            'About this page': '关于此页面',
+            'Account': '账户',
+            'Account switcher': '账户切换',
+            'Active': '活跃',
+            'Activity': '活动',
+            'Add a comment': '添加评论',
+            'Add a description': '添加描述',
+            'Add a title': '添加标题',
+            'Add files': '添加文件',
+            'Add to list': '添加到清单',
+            'Advanced': '高级',
+            'All done': '全部完成',
+            'Appearance': '外观',
+            'Attach files': '附加文件',
+            'Author': '作者',
+            'Avatar': '头像',
+            'Billing': '账单',
+            'Branch': '分支',
+            'Branches': '分支',
+            'Cancel': '取消',
+            'Change password': '更改密码',
+            'Close': '关闭',
+            'Closed': '已关闭',
+            'Code': '代码',
+            'Collaborators': '协作者',
+            'Collections': '精选集',
+            'Comments': '评论',
+            'Company': '公司',
+            'Commit': '提交',
+            'Commits': '提交',
+            'Community': '社区',
+            'Compare': '比较',
+            'Confirm': '确认',
+            'Contact': '联系',
+            'Contribute': '贡献',
+            'Contributors': '贡献者',
+            'Copy': '复制',
+            'Create': '创建',
+            'Create new': '新建',
+            'Customize your pins': '自定义置顶',
+            'Dark': '深色',
+            'Default': '默认',
+            'Delete': '删除',
+            'Deployments': '部署',
+            'Description': '描述',
+            'Design': '设计',
+            'Disabled': '已禁用',
+            'Draft': '草稿',
+            'Edit': '编辑',
+            'Email': '邮箱',
+            'Enabled': '已启用',
+            'Enterprise': '企业版',
+            'Environment': '环境',
+            'Error': '错误',
+            'Events': '活动',
+            'External': '外部',
+            'Features': '功能',
+            'File': '文件',
+            'Files': '文件',
+            'Filter': '筛选',
+            'Find': '查找',
+            'Fork': '复刻',
+            'Forks': '复刻',
+            'General': '常规',
+            'Get started': '开始使用',
+            'Gists': '代码片段',
+            'Header': '头部',
+            'Help': '帮助',
+            'Home': '主页',
+            'Hook': '钩子',
+            'Hooks': '钩子',
+            'ID': 'ID',
+            'In progress': '进行中',
+            'Information': '信息',
+            'Install': '安装',
+            'Installed': '已安装',
+            'Internal': '内部',
+            'Issues': '议题',
+            'Key': '密钥',
+            'Keys': '密钥',
+            'Label': '标签',
+            'Labels': '标签',
+            'Language': '语言',
+            'Languages': '语言',
+            'Last updated': '最后更新',
+            'Latest': '最新',
+            'Light': '浅色',
+            'Link': '链接',
+            'Location': '位置',
+            'Locked': '已锁定',
+            'Log': '日志',
+            'Login': '登录',
+            'Logout': '退出',
+            'Main': '主分支',
+            'Markdown': 'Markdown',
+            'Mentions': '提及',
+            'Message': '消息',
+            'Milestone': '里程碑',
+            'Milestones': '里程碑',
+            'More options': '更多选项',
+            'Name': '名称',
+            'New': '新建',
+            'No': '否',
+            'None': '无',
+            'Notifications': '通知',
+            'OK': '确定',
+            'Offline': '离线',
+            'Online': '在线',
+            'Open': '打开',
+            'Opened': '已打开',
+            'Options': '选项',
+            'Organization': '组织',
+            'Owner': '所有者',
+            'Package': '包',
+            'Packages': '包',
+            'Page': '页面',
+            'Pages': '页面',
+            'Password': '密码',
+            'Pause': '暂停',
+            'Pending': '待定',
+            'Permissions': '权限',
+            'Personal': '个人',
+            'Plan': '计划',
+            'Plans': '计划',
+            'Policies': '策略',
+            'Policy': '策略',
+            'Private': '私有',
+            'Profile': '个人资料',
+            'Projects': '项目',
+            'Public': '公开',
+            'Pull requests': '拉取请求',
+            'Pulse': '活跃度',
+            'Push': '推送',
+            'Queued': '排队中',
+            'Readme': '自述文件',
+            'Refine': '优化',
+            'Release': '发布',
+            'Releases': '发行版',
+            'Remove': '移除',
+            'Rename': '重命名',
+            'Reopen': '重新打开',
+            'Repositories': '仓库',
+            'Repository': '仓库',
+            'Required': '必需',
+            'Reset': '重置',
+            'Resolve': '解决',
+            'Review': '审查',
+            'Role': '角色',
+            'Rules': '规则',
+            'Run': '运行',
+            'Runs': '运行',
+            'Runtime': '运行时',
+            'Save': '保存',
+            'Search': '搜索',
+            'Security': '安全',
+            'Selected': '已选择',
+            'Send': '发送',
+            'Sender': '发送者',
+            'Settings': '设置',
+            'SHA': 'SHA',
+            'Source': '来源',
+            'Stale': '过期',
+            'Star': '星标',
+            'Stars': '星标',
+            'Status': '状态',
+            'Stop': '停止',
+            'Storage': '存储',
+            'Subscribe': '订阅',
+            'Subscribed': '已订阅',
+            'Summary': '摘要',
+            'Support': '支持',
+            'Syntax': '语法',
+            'System': '系统',
+            'Tag': '标签',
+            'Tags': '标签',
+            'Teams': '团队',
+            'Title': '标题',
+            'Token': '令牌',
+            'Tools': '工具',
+            'Topic': '话题',
+            'Topics': '话题',
+            'Traffic': '流量',
+            'Two-factor authentication': '双重身份验证',
+            'Type': '类型',
+            'Types': '类型',
+            'Unarchive': '取消归档',
+            'Undo': '撤销',
+            'Uninstall': '卸载',
+            'Unlock': '解锁',
+            'Unsubscribe': '取消订阅',
+            'Update': '更新',
+            'Updated': '已更新',
+            'Upgrade': '升级',
+            'URL': '网址',
+            'Usage': '使用量',
+            'User': '用户',
+            'Users': '用户',
+            'Version': '版本',
+            'Versions': '版本',
+            'View': '查看',
+            'View all': '查看全部',
+            'View details': '查看详细',
+            'View more': '查看更多',
+            'Visibility': '可见性',
+            'Warning': '警告',
+            'Webhooks': 'Webhooks',
+            'Wiki': '维基',
+            'Wiki': '维基',
+            'Yes': '是',
+            'You': '你',
+            'Your': '你的',
+
             // 时间相关
             'just now': '刚刚',
             'less than a minute ago': '不到 1 分钟前',
@@ -126,6 +493,23 @@ const LOCALES = {
         regexp: [
             [new RegExp('^(\\d+) (?:results?)'), '$1 个结果'],
             [new RegExp('^(\\d+) (?:k\\b)'), '$1k'],
+            [new RegExp('^(\\d+) (?:commits?)'), '$1 次提交'],
+            [new RegExp('^(\\d+) (?:files? changed)'), '$1 个文件变更'],
+            [new RegExp('^(\\d+) (?:additions?)'), '$1 处新增'],
+            [new RegExp('^(\\d+) (?:deletions?)'), '$1 处删除'],
+            [new RegExp('^(\\d+) (?:changes?)'), '$1 处变更'],
+            [new RegExp('^(\\d+) (?:repositories?)'), '$1 个仓库'],
+            [new RegExp('^(\\d+) (?:followers?)'), '$1 位关注者'],
+            [new RegExp('^(\\d+) (?:following)'), '$1 位正在关注'],
+            [new RegExp('^(\\d+) (?:Open)'), '$1 个打开'],
+            [new RegExp('^(\\d+) (?:Closed)'), '$1 个已关闭'],
+            [new RegExp('^(\\d+) (?:branches?)'), '$1 个分支'],
+            [new RegExp('^(\\d+) (?:tags?)'), '$1 个标签'],
+            [new RegExp('^(\\d+) (?:releases?)'), '$1 个发行版'],
+            [new RegExp('^(\\d+) (?:reviews?)'), '$1 个审查'],
+            [new RegExp('^(\\d+) (?:comments?)'), '$1 条评论'],
+            [new RegExp('^(\\d+) (?:solutions?)'), '$1 个解决方案'],
+            [new RegExp('^(\\d+) (?:upvotes?)'), '$1 个赞同'],
         ],
     },
 
@@ -761,6 +1145,176 @@ const LOCALES = {
             'daily': '每日',
             'weekly': '每周',
             'monthly': '每月',
+        },
+    },
+
+    // ==================== 发行版页面 ====================
+    'repository/releases': {
+        title: {
+            regexp: [
+                [new RegExp('^(.+?)\\s*Releases\\s*·\\s*GitHub$'), '$1 发行版 · GitHub'],
+            ],
+        },
+        static: {
+            'Releases': '发行版',
+            'Latest': '最新',
+            'Pre-release': '预发布',
+            'Draft': '草稿',
+            'Create a new release': '创建新发行版',
+            'Generate release notes': '生成发行说明',
+            'Release assets': '发行版资源',
+            'Binary files': '二进制文件',
+            'Source code': '源代码',
+            'Download ZIP': '下载 ZIP',
+            'Total releases': '总发行版数',
+            'Edit release': '编辑发行版',
+            'Delete release': '删除发行版',
+            'Release information': '发行版信息',
+            'Release title': '发行版标题',
+            'Release notes': '发行说明',
+            'Attach binaries by dropping them here': '拖拽二进制文件到此处',
+            'Add notes': '添加说明',
+            'Publish release': '发布发行版',
+            'Save draft': '保存草稿',
+            'Discard draft': '放弃草稿',
+            'Tag version': '标签版本',
+            'Target': '目标分支',
+            'This is a pre-release': '这是一个预发布版本',
+            'Create discussion for this release': '为此发行版创建讨论',
+        },
+        regexp: [
+            [new RegExp('^(\\d+) releases?$'), '$1 个发行版'],
+        ],
+    },
+
+    // ==================== 比较页面 ====================
+    'repository/compare': {
+        title: {
+            regexp: [
+                [new RegExp('^(.+?)\\s*Comparing\\s*·\\s*GitHub$'), '$1 比较 · GitHub'],
+            ],
+        },
+        static: {
+            'Compare': '比较',
+            'Comparing': '正在比较',
+            'base': '基础',
+            'compare': '比较',
+            'Changes': '更改',
+            'Commits': '提交',
+            'Files changed': '文件更改',
+            'No changes': '无更改',
+            'Create pull request': '创建拉取请求',
+            'Create a new pull request': '创建新拉取请求',
+            'Reviewers': '审查者',
+            'Assignees': '指派人',
+            'Labels': '标签',
+            'Milestone': '里程碑',
+            'Description': '描述',
+            'Add a description': '添加描述',
+        },
+        regexp: [
+            [new RegExp('^(\\d+) commits?$'), '$1 个提交'],
+            [new RegExp('^(\\d+) files? changed$'), '$1 个文件变更'],
+            [new RegExp('^(\\d+) additions?$'), '$1 处新增'],
+            [new RegExp('^(\\d+) deletions?$'), '$1 处删除'],
+        ],
+    },
+
+    // ==================== Blame 页面 ====================
+    'repository/blame': {
+        title: {
+            regexp: [
+                [new RegExp('^(.+?)\\s*Blame\\s*·\\s*GitHub$'), '$1 责任追踪 · GitHub'],
+            ],
+        },
+        static: {
+            'Blame': '责任追踪',
+            'Latest commit': '最新提交',
+            'Copy the full SHA': '复制完整 SHA',
+            'View blame for this revision': '查看此版本的责任追踪',
+        },
+    },
+
+    // ==================== 分支页面 ====================
+    'repository/branches': {
+        title: {
+            regexp: [
+                [new RegExp('^(.+?)\\s*Branches\\s*·\\s*GitHub$'), '$1 分支 · GitHub'],
+            ],
+        },
+        static: {
+            'Branches': '分支',
+            'Default branch': '默认分支',
+            'Active': '活跃',
+            'Stale': '过期',
+            'New branch': '新分支',
+            'Search branches...': '搜索分支...',
+            'Filter by name': '按名称筛选',
+            'Delete': '删除',
+            'Rename': '重命名',
+            'Compare': '比较',
+            'Protect': '保护',
+            'Unprotect': '取消保护',
+        },
+        regexp: [
+            [new RegExp('^(\\d+) branches?$'), '$1 个分支'],
+        ],
+    },
+
+    // ==================== 标签页面 ====================
+    'repository/tags': {
+        title: {
+            regexp: [
+                [new RegExp('^(.+?)\\s*Tags\\s*·\\s*GitHub$'), '$1 标签 · GitHub'],
+            ],
+        },
+        static: {
+            'Tags': '标签',
+            'New tag': '新标签',
+            'Search tags...': '搜索标签...',
+        },
+        regexp: [
+            [new RegExp('^(\\d+) tags?$'), '$1 个标签'],
+        ],
+    },
+
+    // ==================== 安全页面 ====================
+    'repository/security': {
+        title: {
+            regexp: [
+                [new RegExp('^(.+?)\\s*Security\\s*·\\s*GitHub$'), '$1 安全 · GitHub'],
+            ],
+        },
+        static: {
+            'Security': '安全',
+            'Security overview': '安全概览',
+            'Code scanning': '代码扫描',
+            'Secret scanning': '密钥扫描',
+            'Dependabot alerts': 'Dependabot 警报',
+            'Dependency graph': '依赖图',
+            'Security policy': '安全策略',
+            'Vulnerabilities': '漏洞',
+            'Secrets': '密钥',
+            'Dismiss': '忽略',
+            'Reopen': '重新打开',
+        },
+    },
+
+    // ==================== 项目页面 ====================
+    'repository/projects': {
+        title: {
+            regexp: [
+                [new RegExp('^(.+?)\\s*Projects\\s*·\\s*GitHub$'), '$1 项目 · GitHub'],
+            ],
+        },
+        static: {
+            'Projects': '项目',
+            'New project': '新项目',
+            'Board': '看板',
+            'Table': '表格',
+            'Roadmap': '路线图',
+            'View settings': '查看设置',
+            'No items to show': '暂无内容',
         },
     },
 };
