@@ -4,10 +4,10 @@
 
 > 让 GitHub 界面全面中文化 — 轻量 · 实时 · 智能
 
-![version](https://img.shields.io/badge/version-1.1.0-blue)
+![version](https://img.shields.io/badge/version-1.2.0-blue)
 ![license](https://img.shields.io/github/license/b8nw27v7wp-bit/GitHub-ZH-Plugin)
 ![stars](https://img.shields.io/github/stars/b8nw27v7wp-bit/GitHub-ZH-Plugin)
-![tests](https://img.shields.io/badge/tests-64%20passed-brightgreen)
+![tests](https://img.shields.io/badge/tests-103%20passed-brightgreen)
 [![CI](https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/actions/workflows/ci.yml)
 
 **简体中文** · [English](#english)
@@ -20,7 +20,7 @@
 
 | 功能 | 说明 | 状态 |
 |------|------|------|
-| 🌐 **界面全面中文化** | 导航、按钮、菜单、提示、标题等 465+ 词条 | ✅ |
+| 🌐 **界面全面中文化** | 导航、按钮、菜单、提示、标题等 700+ 词条 | ✅ |
 | ⚡ **动态内容实时翻译** | MutationObserver 监听 DOM 变化，新增内容即时翻译 | ✅ |
 | 🧠 **智能跳过** | 自动跳过代码块、搜索框、用户昵称、文件名等不应翻译的内容 | ✅ |
 | 🔄 **SPA 无刷新支持** | 适配 GitHub Turbo 页面切换，无需重载即可翻译新页面 | ✅ |
@@ -56,6 +56,13 @@
 | 讨论 / 赞助 / Copilot | `discussions` / `sponsors` / `copilot` | ✅ |
 | 登录 / 注册 | `session-authentication` | ✅ |
 | 新建仓库 | `repository/new` | ✅ |
+| **发行版** | `repository/releases` | ✅ |
+| **比较页面** | `repository/compare` | ✅ |
+| **责任追踪** | `repository/blame` | ✅ |
+| **分支管理** | `repository/branches` | ✅ |
+| **标签管理** | `repository/tags` | ✅ |
+| **安全页面** | `repository/security` | ✅ |
+| **项目看板** | `repository/projects` | ✅ |
 
 ## 🔧 工作原理
 
@@ -99,9 +106,10 @@ GitHub 页面加载 (document-start)
 ```
 GitHub-ZH-Plugin/
 ├── github-zh.user.js      # 主脚本（油猴脚本入口）
-├── locales.js             # 翻译词典（465+ 词条，15 个页面类型）
+├── locales.js             # 翻译词典（700+ 词条，22 个页面类型）
 ├── test/
-│   └── github-zh.test.js  # 功能测试（64 项断言）
+│   ├── github-zh.test.js  # 功能测试（66 项断言）
+│   └── verify-locales.js  # 新增内容验证（37 项断言）
 ├── .github/workflows/ci.yml  # GitHub Actions 自动化测试
 ├── README.md
 └── LICENSE                # MIT 许可证
