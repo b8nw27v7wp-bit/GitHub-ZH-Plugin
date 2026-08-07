@@ -164,7 +164,15 @@ ok('@grant GM_registerMenuCommand', /@grant\s+GM_registerMenuCommand/.test(mainC
 ok('@grant GM_notification', /@grant\s+GM_notification/.test(mainCode));
 ok('@run-at document-start', /@run-at\s+document-start/.test(mainCode));
 ok('@license MIT', /@license\s+MIT/.test(mainCode));
-ok('版本号 >= 1.1.0', /@version\s+1\.1\.0/.test(mainCode));
+// 语义版本比较：当前版本 >= 1.1.0 即通过
+{
+    const vm = mainCode.match(/@version\s+(\d+\.\d+\.\d+)/);
+    const verOk = vm && (() => {
+        const [a, b, c] = vm[1].split('.').map(Number);
+        return a > 1 || (a === 1 && b > 1) || (a === 1 && b === 1 && c >= 0);
+    })();
+    ok('版本号 >= 1.1.0', !!verOk);
+}
 
 // ---------- 核心函数存在 ----------
 console.log('\n[核心函数]');
