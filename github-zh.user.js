@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub 中文化
 // @namespace    https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin
-// @version      1.3.0
+// @version      1.3.1
 // @description  GitHub 界面中文化插件 — 轻量、实时、智能。支持动态内容翻译、描述一键翻译、未命中词条收集。
 // @author       b8nw27v7wp-bit
 // @license      MIT
@@ -14,7 +14,12 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
+// @grant        GM_unregisterMenuCommand
 // @grant        GM_notification
+// @grant        GM_xmlhttpRequest
+// @connect      raw.githubusercontent.com
+// @connect      cdn.jsdelivr.net
+// @connect      fastly.jsdelivr.net
 // ==/UserScript==
 
 (function () {
@@ -24,7 +29,7 @@
     const CONFIG = {
         LANG: 'zh-CN',
         DEV: false,
-        VERSION: '1.1.0',
+        VERSION: '1.3.1',
         // 翻译引擎（仓库描述远程翻译，可自由替换）
         TRANS_ENGINES: {
             mymemory: {
@@ -43,6 +48,16 @@
             characterData: true,
             attributeFilter: ['value', 'placeholder', 'aria-label', 'data-confirm'],
         },
+        // 词典远程源（依次降级，主源不可达时换 CDN；缓解 raw.githubusercontent 被墙）
+        LOCALES_URLS: [
+            'https://raw.githubusercontent.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/main/locales.js',
+            'https://cdn.jsdelivr.net/gh/b8nw27v7wp-bit/GitHub-ZH-Plugin@main/locales.js',
+            'https://fastly.jsdelivr.net/gh/b8nw27v7wp-bit/GitHub-ZH-Plugin@main/locales.js',
+        ],
+        LOCALES_CACHE_KEY: 'localesCache',       // 词典内容缓存键
+        LOCALES_TIMEOUT: 15000,                  // 单源获取超时 (ms)
+        LOCALES_RETRY_DELAY: 30000,              // 全部源失败后的重试间隔 (ms)
+        LOCALES_MAX_RETRY: 5,                    // 最大重试次数
     };
 
     // ==================== 状态管理 ====================
@@ -56,9 +71,7 @@
         pageConfig: null,
         currentURL: location.href,
         observer: null,
-        initDone: false,
-        menuIds: {},          // 动态菜单 ID
-        translateButton: null,
+        menuIds: {},          // 动态菜单 ID（用于注销旧菜单项）
     };
 
     // ==================== 工具函数 ====================
@@ -71,9 +84,78 @@
 
     function checkLocalesLoaded() {
         if (typeof LOCALES === 'undefined') {
-            console.error('[GitHub 中文化] 词典文件未加载');
             throw new Error('locales.js 未加载');
         }
+    }
+
+    // ==================== 词典加载容错 ====================
+    // 摘要：@require 远程加载失败时，依次尝试 GM 缓存与多 CDN 源；全部失败则自动重试
+    function installLocales(src) {
+        // 词典文件形如 `const LOCALES = {...};`，取出对象字面量执行
+        const objSrc = src.replace(/^[\s\S]*?=\s*/, '').replace(/;\s*$/, '').trim();
+        const parsed = new Function(`return (${objSrc});`)();
+        if (!parsed || !parsed.conf || !parsed.public) throw new Error('词典内容解析失败');
+        globalThis.LOCALES = parsed;
+    }
+
+    function loadLocalesFromCache() {
+        const cached = GM_getValue(CONFIG.LOCALES_CACHE_KEY, '');
+        if (!cached) return false;
+        try {
+            installLocales(cached);
+            return true;
+        } catch (e) {
+            console.error('[GitHub 中文化] 词典缓存损坏:', e);
+            GM_setValue(CONFIG.LOCALES_CACHE_KEY, '');
+            return false;
+        }
+    }
+
+    function fetchText(url) {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url,
+                timeout: CONFIG.LOCALES_TIMEOUT,
+                onload: r => resolve(r.responseText),
+                onerror: () => reject(new Error('网络错误')),
+                ontimeout: () => reject(new Error('超时')),
+            });
+        });
+    }
+
+    async function loadLocalesFromRemote() {
+        const errs = [];
+        for (const url of CONFIG.LOCALES_URLS) {
+            try {
+                const src = await fetchText(url);
+                installLocales(src);
+                GM_setValue(CONFIG.LOCALES_CACHE_KEY, src);
+                return;
+            } catch (e) {
+                errs.push(e.message);
+            }
+        }
+        throw new Error('词典源均不可用: ' + errs.join(' / '));
+    }
+
+    function boot(attempt = 1) {
+        // @require 已在脚本前加载 或 可用缓存兜底 → 直接启动
+        if (typeof LOCALES !== 'undefined' || loadLocalesFromCache()) {
+            init();
+            return;
+        }
+
+        loadLocalesFromRemote()
+            .then(() => init())
+            .catch(err => {
+                console.error('[GitHub 中文化] 词典加载失败:', err);
+                if (attempt === 1) {
+                    GM_notification('「GitHub 中文化」词典加载失败，将自动重试…', '提示');
+                }
+                if (attempt >= CONFIG.LOCALES_MAX_RETRY) return;
+                setTimeout(() => boot(attempt + 1), CONFIG.LOCALES_RETRY_DELAY);
+            });
     }
 
     // ==================== 页面类型检测 ====================
@@ -104,14 +186,14 @@
             return pathname.includes('/stars') ? 'page-profile/stars' : 'page-profile';
         }
 
+        // 通用页面（先于仓库主页启发式检测，避免 /settings/profile 等被误判为仓库）
+        const pathMatch = pathname.match(LOCALES.conf.rePagePath);
+        if (pathMatch) return pathMatch[1] || pathMatch.slice(-1)[0];
+
         // 仓库主页 /user/repo（无子路径）
         if (/^\/[^/]+\/[^/]+$/.test(pathname)) {
             return 'repository';
         }
-
-        // 通用页面
-        const pathMatch = pathname.match(LOCALES.conf.rePagePath);
-        if (pathMatch) return pathMatch[1] || pathMatch.slice(-1)[0];
 
         return null;
     }
@@ -167,7 +249,7 @@
     }
 
     // ==================== 翻译核心 ====================
-    function transText(text) {
+    function transText(text, context) {
         if (!text || /^[0-9\s]*$/.test(text) || /^[\u4e00-\u9fa5]+$/.test(text) || !/[a-zA-Z,.]/.test(text)) {
             return false;
         }
@@ -196,7 +278,7 @@
 
         // 记录未命中词条（贡献翻译用）
         if (State.featureSet.enable_missedTerms) {
-            MissedTermsManager.record(cleaned);
+            MissedTermsManager.record(cleaned, context);
         }
 
         return false;
@@ -236,7 +318,7 @@
         if (node.length > 500) return;
         const text = node.data;
         if (!text) return;
-        const result = transText(text);
+        const result = transText(text, { el: node.parentElement });
         if (result && result !== text) {
             node.data = result;
         }
@@ -295,7 +377,7 @@
         for (const attr of attrList) {
             const text = target[attr];
             if (!text) continue;
-            const result = transText(text);
+            const result = transText(text, { el: target });
             if (result) target[attr] = result;
         }
     }
@@ -329,7 +411,6 @@
         button.textContent = '📖 翻译';
         button.title = '使用 MyMemory 翻译此描述';
         element.after(button);
-        State.translateButton = button;
 
         button.addEventListener('click', safe(async () => {
             if (button.disabled) return;
@@ -359,15 +440,32 @@
         }, '描述翻译'));
     }
 
+    // 未命中词条的简单来源描述：优先 id，其次 tag+单一 class
+    function simpleDesc(el) {
+        if (!el || typeof el !== 'object') return '';
+        const id = el.id;
+        if (id) return `#${id}`;
+        const tag = typeof el.tagName === 'string' ? el.tagName.toLowerCase() : '';
+        const cls = typeof el.className === 'string' ? el.className.trim() : '';
+        return tag + (cls && !/\s/.test(cls) ? '.' + cls : '');
+    }
+
     // ==================== 未命中词条收集器 ====================
     const MissedTermsManager = {
         data: GM_getValue('missedTerms', {}),
 
-        record(text) {
+        record(text, context) {
             if (!text || text.length > 60) return;
             const path = location.pathname;
             if (!this.data[path]) this.data[path] = {};
-            this.data[path][text] = '';
+            // 兼容旧结构（value 为字符串 ''）：统一升级为对象
+            const prev = this.data[path][text];
+            const entry = (prev && typeof prev === 'object') ? prev : {};
+            entry.count = (entry.count || 0) + 1;
+            entry.pageType = State.pageConfig?.pageType || '';
+            const desc = simpleDesc(context?.el);
+            if (desc) entry.selector = desc;
+            this.data[path][text] = entry;
             // 防抖保存
             clearTimeout(this._timer);
             this._timer = setTimeout(() => {
@@ -378,7 +476,9 @@
         getStats() {
             const paths = Object.keys(this.data);
             const terms = paths.reduce((sum, p) => sum + Object.keys(this.data[p]).length, 0);
-            return { paths: paths.length, terms };
+            const freq = paths.reduce((sum2, p) => sum2 + Object.values(this.data[p])
+                .reduce((s, v) => s + (typeof v === 'object' ? (v.count || 1) : 1), 0), 0);
+            return { paths: paths.length, terms, freq };
         },
 
         exportJSON() {
@@ -414,8 +514,16 @@
     }
 
     function refreshMissedTermsMenu() {
+        // 先注销旧菜单项，避免重复累积
+        ['missedToggle', 'exportMissed', 'clearMissed'].forEach(id => {
+            if (State.menuIds[id]) {
+                GM_unregisterMenuCommand(State.menuIds[id]);
+                delete State.menuIds[id];
+            }
+        });
+
         const label = `${State.featureSet.enable_missedTerms ? '禁用' : '启用'} 未命中词条收集`;
-        GM_registerMenuCommand(label, () => {
+        State.menuIds.missedToggle = GM_registerMenuCommand(label, () => {
             State.featureSet.enable_missedTerms = !State.featureSet.enable_missedTerms;
             GM_setValue('enable_missedTerms', State.featureSet.enable_missedTerms);
             GM_notification(State.featureSet.enable_missedTerms ? '已启用词条收集' : '已禁用词条收集');
@@ -425,7 +533,7 @@
         if (State.featureSet.enable_missedTerms) {
             const stats = MissedTermsManager.getStats();
             if (stats.terms > 0) {
-                GM_registerMenuCommand(`📥 导出词条 (${stats.terms}条)`, () => {
+                State.menuIds.exportMissed = GM_registerMenuCommand(`📥 导出词条 (${stats.terms}条)`, () => {
                     const blob = new Blob([MissedTermsManager.exportJSON()], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -434,7 +542,7 @@
                     a.click();
                     URL.revokeObjectURL(url);
                 });
-                GM_registerMenuCommand('🗑️ 清空词条', () => {
+                State.menuIds.clearMissed = GM_registerMenuCommand('🗑️ 清空词条', () => {
                     MissedTermsManager.clear();
                     GM_notification('词条已清空');
                     refreshMissedTermsMenu();
@@ -517,10 +625,8 @@
         document.addEventListener('turbo:load', safe(() => {
             if (!State.pageConfig) return;
             transTitle();
-            if (State.pageConfig) {
-                safe(traverseNode, 'turbo遍历')(document.body);
-                transDesc(getDescSelector());
-            }
+            safe(traverseNode, 'turbo遍历')(document.body);
+            transDesc(getDescSelector());
         }, 'turbo:load'));
     }
 
@@ -532,7 +638,6 @@
         setupMenuCommands();
         setupInitTrans();
         setupTurboEvents();
-        State.initDone = true;
     }
 
     function initLangEnv() {
@@ -587,5 +692,5 @@
     }
 
     // ==================== 启动 ====================
-    init();
+    boot();
 })();
