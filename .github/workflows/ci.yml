@@ -19,3 +19,6 @@ jobs:
 
       - name: Run tests
         run: node test/github-zh.test.js
+
+      - name: Validate locales
+        run: node test/verify-locales.js
