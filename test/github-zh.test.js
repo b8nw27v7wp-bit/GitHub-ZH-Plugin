@@ -1,6 +1,6 @@
 /**
  * github-zh 功能测试
- * 用最小 DOM 模拟验证翻译引擎、页面配置、词条收集逻辑
+ * 通过注入语法钩子实际执行主脚本 IIFE，测试真实实现（transText/buildPageConfig/detectPageType/MissedTermsManager 等）
  * 运行: node test/github-zh.test.js
  */
 const fs = require('fs');
@@ -10,51 +10,49 @@ const BASE = path.join(__dirname, '..');
 let pass = 0, fail = 0;
 const ok = (name, cond) => { if (cond) { pass++; console.log('  ✓ ' + name); } else { fail++; console.error('  ✗ ' + name); } };
 
-// ---------- 最小 DOM 模拟 ----------
-class FakeTextNode {
-    constructor(text) { this.data = text; this.length = text.length; this.nodeType = 3; }
+// ---------- 最小 DOM 模拟（足以让主脚本 IIFE 真实运行） ----------
+class FakeMutationObserver {
+    disconnect() {}
+    observe() {}
+    takeRecords() { return []; }
 }
-class FakeElement {
-    constructor(tag) {
-        this.tagName = tag; this.nodeType = 1; this.children = [];
-        this.dataset = {}; this.attrs = {};
-        this.className = ''; this.type = '';
-        this.shadowRoot = null;
-        this.textContent = '';
-        this.nextElementSibling = null;
-    }
-    matches() { return false; }
-    closest() { return null; }
-    querySelector() { return null; }
-}
-const documentStub = {
-    documentElement: { lang: 'en' },
-    body: null,
-    title: '',
-    readyState: 'complete',
-    createTreeWalker() {
-        return {
-            nextNode() { return null; }
-        };
-    },
-    addEventListener() {},
-    querySelector() { return null; },
-};
+global.MutationObserver = FakeMutationObserver;
 
-global.document = documentStub;
-global.window = {
-    location: { href: 'https://github.com/maboloshi/github-chinese', pathname: '/maboloshi/github-chinese' },
-    addEventListener() {},
-};
-global.location = global.window.location;
 global.Node = { TEXT_NODE: 3, ELEMENT_NODE: 1 };
 global.NodeFilter = { SHOW_ELEMENT: 1, SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 };
-global.URL = URL;
-global.GM_getValue = () => undefined;
+
+const __location = {
+    href: 'https://github.com/maboloshi/github-chinese',
+    pathname: '/maboloshi/github-chinese',
+};
+global.location = __location;
+
+global.document = {
+    documentElement: { lang: 'en' },
+    body: {
+        classList: { contains: () => false },
+    },
+    title: '',
+    readyState: 'complete',
+    createTreeWalker(rootNode, whatToShow, filter) {
+        return { nextNode() { return null; } };
+    },
+    querySelector() { return null; },
+    addEventListener() {},
+};
+window_mock = {
+    location: __location,
+    addEventListener() {},
+};
+global.window = window_mock;
+
+global.GM_getValue = (key, def) => def;
 global.GM_setValue = () => {};
 global.GM_addStyle = () => {};
 global.GM_registerMenuCommand = () => 0;
+global.GM_unregisterMenuCommand = () => {};
 global.GM_notification = () => {};
+global.GM_xmlhttpRequest = () => {};
 global.console = console;
 
 // ---------- 加载被测代码 ----------
@@ -62,7 +60,6 @@ console.log('\n[加载]');
 const localesCode = fs.readFileSync(path.join(BASE, 'locales.js'), 'utf8');
 const mainCode = fs.readFileSync(path.join(BASE, 'github-zh.user.js'), 'utf8');
 
-// 1. locales.js 必须可执行
 let LOCALES;
 try {
     LOCALES = new Function(localesCode + '; return LOCALES;')();
@@ -73,15 +70,24 @@ try {
     process.exit(1);
 }
 
-// 2. 主脚本必须可执行（剥离油猴元数据块）
-const mainBody = mainCode.replace(/\/\/ ==UserScript==[\s\S]*?\/\/ ==\/UserScript==/, '');
+// 剥离元数据块并注入导出钩子
+const mainBody = mainCode
+    .replace(/\/\/ ==UserScript==[\s\S]*?\/\/ ==\/UserScript==/, '')
+    .replace(
+        /\n(\s*)\}\)\(\);\s*$/,
+        (m, indent) => `\n${indent}window.__ghzTest = {\n${indent}    transText, transTitle, buildPageConfig, detectPageType, updatePageConfig,\n${indent}    traverseNode, handleTextNode, MissedTermsManager, get featureSet() { return State.featureSet; },\n${indent}};\n${indent}})();`
+    );
+
 try {
-    new Function(mainBody);
-    ok('github-zh.user.js 语法', true);
+    new Function(mainBody)();
+    ok('github-zh.user.js 执行', true);
 } catch (e) {
-    ok('github-zh.user.js 语法: ' + e.message, false);
+    ok('github-zh.user.js 执行: ' + e.stack, false);
     process.exit(1);
 }
+
+const ghz = window_mock.__ghzTest;
+ok('导出测试钩子 __ghzTest', !!ghz);
 
 // ---------- 词典结构 ----------
 console.log('\n[词典结构]');
@@ -99,61 +105,83 @@ for (const pt of pageTypes) {
     ok(`页面类型 ${pt} 有 static 词典`, !!LOCALES[pt]?.static && Object.keys(LOCALES[pt].static).length > 0);
 }
 
-// ---------- 翻译核心验证 ----------
-console.log('\n[翻译核心]');
+// ---------- 真实实现：页面类型检测 ----------
+console.log('\n[detectPageType 真实实现]');
+function setPath(href, pathname) { __location.href = href; __location.pathname = pathname; }
+ok('仓库路径 /user/repo/issues → repository/issues', (() => { setPath('https://github.com/u/r/issues', '/u/r/issues'); return ghz.detectPageType() === 'repository/issues'; })());
+ok('仓库路径 /user/repo/pull/1 → repository/pull', (() => { setPath('https://github.com/u/r/pull/1', '/u/r/pull/1'); return ghz.detectPageType() === 'repository/pull'; })());
+ok('仓库主页 /user/repo → repository', (() => { setPath('https://github.com/u/r', '/u/r'); return ghz.detectPageType() === 'repository'; })());
+ok('设置路径 /settings/profile → settings', (() => { setPath('https://github.com/settings/profile', '/settings/profile'); return ghz.detectPageType() === 'settings'; })());
+ok('通知路径 /notifications → notifications', (() => { setPath('https://github.com/notifications', '/notifications'); return ghz.detectPageType() === 'notifications'; })());
+ok('gist 域名 → gist', (() => { setPath('https://gist.github.com/u/abc', '/u/abc'); return ghz.detectPageType() === 'gist'; })());
+ok('status 域名 → status', (() => { setPath('https://www.githubstatus.com/', '/'); return ghz.detectPageType() === 'status'; })());
+ok('非仓库单段路径不命中任何类型（返回 null）', (() => { setPath('https://github.com/maboloshi', '/maboloshi'); return ghz.detectPageType() === null; })());
 
-// 从主脚本提取关键逻辑独立测试（因为主脚本 IIFE 在模拟环境直接跑有副作用）
-// 这里直接测词典匹配语义 + 正则规则
-function staticTranslate(text, pageType) {
-    const cleaned = text.trim().replace(/\xa0|[\s]+/g, ' ');
-    const staticDict = { ...(LOCALES.public.static || {}), ...(LOCALES[pageType]?.static || {}) };
-    return staticDict[cleaned] || null;
+// ---------- 真实实现：构建页面配置 ----------
+console.log('\n[buildPageConfig 真实实现]');
+{
+    const cfg = ghz.buildPageConfig('repository');
+    ok('合并公共词典 (Pull requests → 拉取请求)', cfg.staticDict['Pull requests'] === '拉取请求');
+    ok('合并页面词典 (Code → 代码)', cfg.staticDict['Code'] === '代码');
+    ok('regexpRules 页面优先于公共', cfg.regexpRules[0] === LOCALES.repository.regexp[0] &&
+        cfg.regexpRules.length === LOCALES.repository.regexp.length + LOCALES.public.regexp.length);
+    ok('ignoreSelectors 为合并串', typeof cfg.ignoreSelectors === 'string');
+    ok('characterData 默认 false', cfg.characterData === false);
 }
-function regexpTranslate(text, pageType) {
-    const cleaned = text.trim().replace(/\xa0|[\s]+/g, ' ');
-    const rules = [...(LOCALES[pageType]?.regexp || []), ...(LOCALES.public.regexp || [])];
-    for (const [pattern, replacement] of rules) {
-        const result = cleaned.replace(pattern, replacement);
-        if (result !== cleaned) return result;
-    }
-    return null;
+
+// ---------- 真实实现：transText ----------
+console.log('\n[transText 真实实现]');
+setPath('https://github.com/u/r', '/u/r');
+ghz.updatePageConfig('测试');
+ok('静态: Pull requests → 拉取请求', ghz.transText('Pull requests') === '拉取请求');
+ok('静态: Code → 代码', ghz.transText(' Code  ')?.trim() === '代码');
+ok('正则: 12 commits → 12 次提交', ghz.transText('12 commits') === '12 次提交');
+ok('正则: 3 files changed → 3 个文件变更', ghz.transText('3 files changed') === '3 个文件变更');
+ok('纯中文不翻译', ghz.transText('这是一个测试') === false);
+ok('纯数字不翻译', ghz.transText('12345') === false);
+ok('未收录英文返回 false', ghz.transText('TotallyUnknownTermXYZ') === false);
+
+// 禁用正则后，antian 规则不再生效
+ghz.featureSet.enable_RegExp = false;
+ok('关闭正则后 12 commits 不翻译', ghz.transText('12 commits') === false);
+ok('关闭正则后静态翻译仍生效', ghz.transText('Pull requests') === '拉取请求');
+ghz.featureSet.enable_RegExp = true;
+
+// ---------- 真实实现：未命中词条收集 ----------
+console.log('\n[MissedTermsManager 真实实现]');
+{
+    ghz.MissedTermsManager.clear();
+    ghz.MissedTermsManager.record('Untranslated Something', { el: { id: '', tagName: 'SPAN', className: 'foo bar' } });
+    const path = __location.pathname;
+    const entry = ghz.MissedTermsManager.data[path]['Untranslated Something'];
+    ok('记录到当前路径', !!entry);
+    ok('记录 pageType', entry.pageType === 'repository');
+    ok('记录统计次数', entry.count === 1);
+    ghz.MissedTermsManager.record('Untranslated Something', { el: { id: '', tagName: 'SPAN', className: 'foo bar' } });
+    ok('重复命中 count 递增', ghz.MissedTermsManager.data[path]['Untranslated Something'].count === 2);
+    ok('纯中文不记录', !ghz.MissedTermsManager.data[path]['这是一个测试']);
+    ghz.MissedTermsManager.record('Legacy shape', {});
+    ghz.MissedTermsManager.data[path]['Legacy shape'] = '';
+    ghz.MissedTermsManager.record('Legacy shape', { el: { id: 'btn-id', tagName: '', className: '' } });
+    ok('旧结构自动升级为对象', typeof ghz.MissedTermsManager.data[path]['Legacy shape'] === 'object');
+    ok('升级后 count=1 且 selector 取 id', ghz.MissedTermsManager.data[path]['Legacy shape'].count === 1 && ghz.MissedTermsManager.data[path]['Legacy shape'].selector === '#btn-id');
+    const stats = ghz.MissedTermsManager.getStats();
+    ok('getStats 返回统计', stats.paths >= 1 && stats.terms >= 2);
+    ghz.MissedTermsManager.clear();
+    clearTimeout(ghz.MissedTermsManager._timer);
 }
 
-ok('公共: Pull requests → 拉取请求', staticTranslate('Pull requests', 'repository') === '拉取请求');
-ok('公共: Issues → 议题', staticTranslate('Issues', 'repository') === '议题');
-ok('公共: Settings → 设置', staticTranslate('Settings', 'settings') === '设置');
-ok('仓库: Code → 代码', staticTranslate('Code', 'repository') === '代码');
-ok('仓库: Merge pull request → 合并拉取请求', staticTranslate('Merge pull request', 'repository') === '合并拉取请求');
-ok('设置: Change password → 更改密码', staticTranslate('Change password', 'settings') === '更改密码');
-ok('搜索: Best match → 最佳匹配', staticTranslate('Best match', 'search') === '最佳匹配');
-ok('PR: Files changed → 文件更改', staticTranslate('Files changed', 'pulls') === '文件更改');
-ok('仓库正则: 12 commits → 12 次提交', regexpTranslate('12 commits', 'repository') === '12 次提交');
-ok('仓库正则: 3 files changed → 3 个文件变更', regexpTranslate('3 files changed', 'repository') === '3 个文件变更');
-ok('仓库正则: 5 additions → 5 处新增', regexpTranslate('5 additions', 'repository') === '5 处新增');
-ok('搜索结果正则: 42 results → 42 个结果', regexpTranslate('42 results', 'search') === '42 个结果');
-ok('纯中文不翻译', staticTranslate('这是一个测试', 'repository') === null);
-ok('纯数字不翻译', staticTranslate('12345', 'repository') === null);
-
-// ---------- 页面类型检测 ----------
-console.log('\n[页面类型正则]');
-ok('仓库路径 /user/repo/issues → repository/issues',
-    '/user/repo/issues'.match(LOCALES.conf.rePagePathRepo)?.[1] === 'issues');
-ok('仓库主页 /user/repo 两段路径正则匹配（detectPageType 仓库主页检测）',
-    /^\/[^/]+\/[^/]+$/.test('/user/repo'));
-ok('用户主页 /user 单段路径不匹配仓库主页正则',
-    !/^\/[^/]+\/[^/]+$/.test('/user'));
-ok('仓库路径 /user/repo/pull/1 → repository/pull',
-    '/user/repo/pull/1'.match(LOCALES.conf.rePagePathRepo)?.[1] === 'pull');
-ok('仓库路径 /user/repo/settings → repository/settings',
-    '/user/repo/settings'.match(LOCALES.conf.rePagePathRepo)?.[1] === 'settings');
-ok('设置路径 /settings/profile → settings',
-    '/settings/profile'.match(LOCALES.conf.rePagePath)?.[1] === 'settings');
-ok('通知路径 /notifications → notifications',
-    '/notifications'.match(LOCALES.conf.rePagePath)?.[1] === 'notifications');
-ok('趋势路径 /trending → trending',
-    '/trending'.match(LOCALES.conf.rePagePath)?.[1] === 'trending');
-ok('组织路径 /orgs/foo/teams → teams',
-    '/orgs/foo/teams'.match(LOCALES.conf.rePagePathOrg)?.[1] === 'teams');
+// ---------- 真实实现：标题翻译（冒烟） ----------
+console.log('\n[transTitle 冒烟]');
+try {
+    document.title = 'GitHub';
+    setPath('https://github.com/', '/');
+    ghz.updatePageConfig('测试');
+    ghz.transTitle();
+    ok('transTitle 不抛异常', true);
+} catch (e) {
+    ok('transTitle 不抛异常: ' + e.message, false);
+}
 
 // ---------- 元数据 ----------
 console.log('\n[油猴元数据]');
@@ -162,9 +190,10 @@ ok('@match gist.github.com', /@match\s+https:\/\/gist\.github\.com\/\*/.test(mai
 ok('@require locales.js', /@require.*locales\.js/.test(mainCode));
 ok('@grant GM_registerMenuCommand', /@grant\s+GM_registerMenuCommand/.test(mainCode));
 ok('@grant GM_notification', /@grant\s+GM_notification/.test(mainCode));
+ok('@grant GM_xmlhttpRequest', /@grant\s+GM_xmlhttpRequest/.test(mainCode));
+ok('@connect cdn.jsdelivr.net', /@connect\s+cdn\.jsdelivr\.net/.test(mainCode));
 ok('@run-at document-start', /@run-at\s+document-start/.test(mainCode));
 ok('@license MIT', /@license\s+MIT/.test(mainCode));
-// 语义版本比较：当前版本 >= 1.1.0 即通过
 {
     const vm = mainCode.match(/@version\s+(\d+\.\d+\.\d+)/);
     const verOk = vm && (() => {
@@ -178,7 +207,7 @@ ok('@license MIT', /@license\s+MIT/.test(mainCode));
 console.log('\n[核心函数]');
 for (const fn of ['detectPageType', 'buildPageConfig', 'transText', 'traverseNode',
     'handleTextNode', 'handleElementNode', 'setupObserver', 'transTitle',
-    'transDesc', 'MissedTermsManager', 'setupMenuCommands', 'init']) {
+    'transDesc', 'MissedTermsManager', 'setupMenuCommands', 'init', 'boot']) {
     ok(`含 ${fn}`, mainCode.includes(fn));
 }
 
