@@ -4,10 +4,10 @@
 
 > 让 GitHub 界面全面中文化 — 轻量 · 实时 · 智能
 
-![version](https://img.shields.io/badge/version-1.3.0-blue)
+![version](https://img.shields.io/badge/version-1.3.1-blue)
 ![license](https://img.shields.io/github/license/b8nw27v7wp-bit/GitHub-ZH-Plugin)
 ![stars](https://img.shields.io/github/stars/b8nw27v7wp-bit/GitHub-ZH-Plugin)
-![tests](https://img.shields.io/badge/tests-103%20passed-brightgreen)
+![tests](https://img.shields.io/badge/tests-85%20passed-brightgreen)
 [![CI](https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/actions/workflows/ci.yml)
 
 **简体中文** · [English](#english)
@@ -20,7 +20,7 @@
 
 | 功能 | 说明 | 状态 |
 |------|------|------|
-| 🌐 **界面全面中文化** | 导航、按钮、菜单、提示、标题等 1080+ 词条 | ✅ |
+| 🌐 **界面全面中文化** | 导航、按钮、菜单、提示、标题等 1100+ 词条 | ✅ |
 | ⚡ **动态内容实时翻译** | MutationObserver 监听 DOM 变化，新增内容即时翻译 | ✅ |
 | 🧠 **智能跳过** | 自动跳过代码块、搜索框、用户昵称、文件名等不应翻译的内容 | ✅ |
 | 🔄 **SPA 无刷新支持** | 适配 GitHub Turbo 页面切换，无需重载即可翻译新页面 | ✅ |
@@ -38,7 +38,7 @@
 
 **[📦 点击安装脚本](https://raw.githubusercontent.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/main/github-zh.user.js)**
 
-> 💡 安装后访问任意 GitHub 页面即生效。脚本会自动更新词典（`@require` 远程加载）。
+> 💡 安装后访问任意 GitHub 页面即生效。词典经 `@require` 远程加载（推送仓库后自动更新）；加载失败时自动降级到 jsDelivr CDN + 本地缓存 + 自动重试，国内网络也能正常使用。
 
 ## 🖥️ 支持的页面
 
@@ -101,16 +101,27 @@ GitHub 页面加载 (document-start)
 | 📥 导出词条 | — | 导出收集到的未翻译词条 |
 | 🗑️ 清空词条 | — | 清空收集数据 |
 
+## 🔒 安全与隐私
+
+- **防 XSS**：所有翻译结果一律通过 `textContent` / 文本节点 `data` 写入，脚本全程不使用 `innerHTML`
+- **不污染代码**：代码高亮、代码编辑器、Markdown 正文、文件名、用户昵称、搜索框等一律跳过
+- **远程翻译透明**：仅「仓库描述翻译」会将描述文本发送给第三方翻译服务（MyMemory），其余翻译全部在本地词典完成、零网络请求
+- **词条收集可控**：默认关闭；开启后仅记录页面路径 + 英文词条 + 出现位置（`pageType`/选择器/命中次数），不包含任何账户或个人隐私，可一键清空
+- **词典加载安全**：词典仅从仓库主源与 jsDelivr CDN（HTTPS）加载并写入本地缓存，无第三方脚本注入
+
 ## 📁 项目结构
 
 ```
 GitHub-ZH-Plugin/
-├── github-zh.user.js      # 主脚本（油猴脚本入口）
-├── locales.js             # 翻译词典（1080+ 词条，29 个页面类型）
+├── github-zh.user.js      # 主脚本（油猴脚本入口，含词典加载容错）
+├── locales.js             # 翻译词典（1100+ 词条，29 个页面类型）
 ├── test/
-│   ├── github-zh.test.js  # 功能测试（66 项断言）
-│   └── verify-locales.js  # 新增内容验证（37 项断言）
-├── .github/workflows/ci.yml  # GitHub Actions 自动化测试
+│   ├── github-zh.test.js  # 功能测试（78 项断言，真实执行主脚本核心函数）
+│   └── verify-locales.js  # 词典静态校验（7 项：重复键/空白键/正则组引用等）
+├── script/
+│   ├── bump-version.js    # 版本递增脚本（同步 @version / CONFIG.VERSION / README）
+│   └── missed-to-dict.js  # 未命中词条 JSON → locales.js 词条草稿
+├── .github/workflows/ci.yml  # CI：功能测试 + 词典校验
 ├── README.md
 └── LICENSE                # MIT 许可证
 ```
@@ -121,8 +132,12 @@ GitHub-ZH-Plugin/
 
 1. Fork 本仓库
 2. 编辑 `locales.js`，找到对应页面类型的 `static` 或 `regexp` 添加词条
-3. 运行测试确认无回归：`node test/github-zh.test.js`
+3. 运行测试确认无回归：`node test/github-zh.test.js && node test/verify-locales.js`
 4. 提交 Pull Request
+
+> 💡 **偷懒路径**：用「未命中词条收集」浏览 GitHub 后导出 JSON，再执行
+> `node script/missed-to-dict.js 导出.json`，脚本会自动：按页面类型归类、过滤已收录词条、
+> 按命中次数排序，直接生成词条草稿供粘贴填写（含 pageType/选择器/命中次数信息）。
 
 ### 词条格式
 
@@ -145,6 +160,12 @@ public: {
 - Commit message 使用 `feat:` / `fix:` / `docs:` 前缀
 - 词条贡献一个 PR 尽量只改一个页面类型，方便审查
 
+## 🔄 更新日志
+
+- **v1.3.1**（2026-08）：词典加载容错（多 CDN 降级 + 本地缓存 + 自动重试）；词条收集升级（附带页面类型 / 选择器 / 命中次数）；修复 `/settings/profile` 页面类型误判、标题正则捕获组缺失等 bug；新增「真实执行主脚本」测试与 `verify-locales.js` 静态校验；新增 `bump-version.js` / `missed-to-dict.js` 工具
+- **v1.3.0**：新增 issues / pulls / commit / actions / wiki / packages 边缘页面翻译
+- **v1.1.0**：架构升级，支持动态内容翻译、描述一键翻译、未命中词条收集
+
 ## ❓ FAQ
 
 **Q: 为什么有些内容没翻译？**
@@ -157,7 +178,7 @@ A: 不会。脚本明确跳过了代码高亮区域（`.highlight`）、代码�
 A: 本项目是独立实现，架构更轻量（单文件主脚本 + 独立词典），提供词条收集导出、CI 自动化测试等工程化能力，方便社区贡献翻译。
 
 **Q: 如何更新脚本？**
-A: Tampermonkey 会自动检查更新；词典通过 `@require` 远程加载，更新仓库后自动生效。
+A: Tampermonkey 会自动检查更新；词典通过 `@require` 远程加载，更新仓库后自动生效。若所在网络无法访问 raw.githubusercontent，脚本会自动改用 jsDelivr CDN 并复用本地缓存。
 
 ## 📄 许可证
 
