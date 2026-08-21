@@ -91,8 +91,8 @@
     // ==================== 词典加载容错 ====================
     // 摘要：@require 远程加载失败时，依次尝试 GM 缓存与多 CDN 源；全部失败则自动重试
     function installLocales(src) {
-        // 词典文件形如 `const LOCALES = {...};`，取出对象字面量执行
-        const objSrc = src.replace(/^[\s\S]*?=\s*/, '').replace(/;\s*$/, '').trim();
+        // 词典文件形如 `const LOCALES = {...};`，锚定变量名截取对象字面量执行
+        const objSrc = src.replace(/^[\s\S]*?\bLOCALES\s*=\s*/, '').replace(/;\s*$/, '').trim();
         const parsed = new Function(`return (${objSrc});`)();
         if (!parsed || !parsed.conf || !parsed.public) throw new Error('词典内容解析失败');
         globalThis.LOCALES = parsed;
@@ -117,7 +117,9 @@
                 method: 'GET',
                 url,
                 timeout: CONFIG.LOCALES_TIMEOUT,
-                onload: r => resolve(r.responseText),
+                onload: r => (r.status >= 200 && r.status < 300)
+                    ? resolve(r.responseText)
+                    : reject(new Error('HTTP ' + r.status)),
                 onerror: () => reject(new Error('网络错误')),
                 ontimeout: () => reject(new Error('超时')),
             });
@@ -260,10 +262,10 @@
         const cfg = State.pageConfig;
         if (!cfg) return false;
 
-        // 静态匹配
+        // 静态匹配（用函数替换，避免译文中的 $ 序列被二次解释）
         const staticResult = cfg.staticDict[cleaned];
         if (typeof staticResult === 'string' && staticResult !== cleaned) {
-            return text.replace(trimmed, staticResult);
+            return text.replace(trimmed, () => staticResult);
         }
 
         // 正则匹配
@@ -271,7 +273,7 @@
             for (const [pattern, replacement] of cfg.regexpRules) {
                 const result = cleaned.replace(pattern, replacement);
                 if (result !== cleaned) {
-                    return text.replace(trimmed, result);
+                    return text.replace(trimmed, () => result);
                 }
             }
         }
@@ -319,7 +321,8 @@
         const text = node.data;
         if (!text) return;
         const result = transText(text, { el: node.parentElement });
-        if (result && result !== text) {
+        // transText 以 false 表示未命中；空字符串是有效翻译值（如 'on': ''），需写入
+        if (result !== false && result !== text) {
             node.data = result;
         }
     }
@@ -330,9 +333,14 @@
         // 时间元素
         if (tag === 'RELATIVE-TIME') {
             if (node.shadowRoot) {
-                const text = node.shadowRoot.textContent;
-                const result = text?.replace(/^on/, '');
-                if (result && result !== text) node.shadowRoot.textContent = result;
+                // 仅修改文本节点，避免整体替换破坏 shadow DOM 结构
+                const walker = document.createTreeWalker(node.shadowRoot, NodeFilter.SHOW_TEXT);
+                let tn;
+                while ((tn = walker.nextNode())) {
+                    const text = tn.data;
+                    const result = text.replace(/^on/, '');
+                    if (result !== text) tn.data = result;
+                }
             }
             return;
         }
@@ -378,7 +386,7 @@
             const text = target[attr];
             if (!text) continue;
             const result = transText(text, { el: target });
-            if (result) target[attr] = result;
+            if (result !== false && result !== text) target[attr] = result;
         }
     }
 
@@ -413,15 +421,18 @@
         element.after(button);
 
         button.addEventListener('click', safe(async () => {
-            if (button.disabled) return;
-            button.disabled = true;
+            // div 无 disabled 行为，用 dataset 标志防连点
+            if (button.dataset.translating === '1') return;
+            const text = element.textContent.trim();
+            if (!text) return;
+            button.dataset.translating = '1';
             button.textContent = '⏳ 翻译中...';
 
             try {
-                const text = element.textContent.trim();
                 const engine = CONFIG.TRANS_ENGINES.mymemory;
                 const params = new URLSearchParams(engine.getRequestData(text));
                 const res = await fetch(`${engine.url}/get?${params}`);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
                 const result = engine.parseResponse(data);
 
@@ -430,12 +441,16 @@
                     box.className = 'translation-result';
                     box.textContent = result;
                     button.after(box);
+                    button.textContent = '📖 已翻译';
+                    // 成功后保持标志位，按钮一次性生效，避免重复插入结果框
                 } else {
                     button.textContent = '❌ 翻译失败';
+                    delete button.dataset.translating; // 允许重试
                 }
             } catch (err) {
                 console.error('[GitHub 中文化] 描述翻译失败:', err);
                 button.textContent = '❌ 翻译失败';
+                delete button.dataset.translating;
             }
         }, '描述翻译'));
     }
@@ -453,11 +468,20 @@
     // ==================== 未命中词条收集器 ====================
     const MissedTermsManager = {
         data: GM_getValue('missedTerms', {}),
+        MAX_TOTAL: 2000,      // 词条总量上限，防止无限膨胀
+
+        // 当前词条总数（仅在新增词条时统计，避免高频开销）
+        totalSize() {
+            let n = 0;
+            for (const p in this.data) n += Object.keys(this.data[p]).length;
+            return n;
+        },
 
         record(text, context) {
             if (!text || text.length > 60) return;
             const path = location.pathname;
             if (!this.data[path]) this.data[path] = {};
+            if (!this.data[path][text] && this.totalSize() >= this.MAX_TOTAL) return;
             // 兼容旧结构（value 为字符串 ''）：统一升级为对象
             const prev = this.data[path][text];
             const entry = (prev && typeof prev === 'object') ? prev : {};
@@ -469,8 +493,17 @@
             // 防抖保存
             clearTimeout(this._timer);
             this._timer = setTimeout(() => {
+                this._timer = null;
                 GM_setValue('missedTerms', this.data);
             }, 2000);
+        },
+
+        // 立即持久化（页面隐藏时调用，避免防抖窗口内的记录丢失）
+        flush() {
+            if (!this._timer) return;
+            clearTimeout(this._timer);
+            this._timer = null;
+            GM_setValue('missedTerms', this.data);
         },
 
         getStats() {
@@ -494,23 +527,31 @@
     // ==================== 菜单命令 ====================
     function setupMenuCommands() {
         // 1. 正则翻译开关
-        createToggleMenu('正则翻译', 'enable_RegExp');
+        refreshToggleMenu('正则翻译', 'enable_RegExp');
         // 2. 描述翻译开关
-        createToggleMenu('描述翻译', 'enable_transDesc');
+        refreshToggleMenu('描述翻译', 'enable_transDesc');
         // 3. 未命中词条收集器开关（动态菜单）
         refreshMissedTermsMenu();
     }
 
-    function createToggleMenu(label, key) {
-        const getLabel = () => `${State.featureSet[key] ? '禁用' : '启用'} ${label}`;
-        const toggle = () => {
-            const newState = !State.featureSet[key];
-            State.featureSet[key] = newState;
-            GM_setValue(key, newState);
-            GM_notification(`${label}已${newState ? '启用' : '禁用'}`);
-            if (newState && State.pageConfig) safe(traverseNode, '菜单触发遍历')(document.body);
-        };
-        GM_registerMenuCommand(getLabel(), toggle);
+    // 注销旧菜单项后重注册，保证开关文案与实际状态同步
+    function refreshToggleMenu(label, key) {
+        const menuId = 'toggle_' + key;
+        if (State.menuIds[menuId]) {
+            GM_unregisterMenuCommand(State.menuIds[menuId]);
+            delete State.menuIds[menuId];
+        }
+        State.menuIds[menuId] = GM_registerMenuCommand(
+            `${State.featureSet[key] ? '禁用' : '启用'} ${label}`,
+            () => {
+                const newState = !State.featureSet[key];
+                State.featureSet[key] = newState;
+                GM_setValue(key, newState);
+                GM_notification(`${label}已${newState ? '启用' : '禁用'}`);
+                if (newState && State.pageConfig) safe(traverseNode, '菜单触发遍历')(document.body);
+                refreshToggleMenu(label, key);
+            }
+        );
     }
 
     function refreshMissedTermsMenu() {
@@ -615,7 +656,8 @@
     // ==================== 描述选择器 ====================
     function getDescSelector() {
         const type = State.pageConfig?.pageType;
-        if (type === 'repository') return '.f4.tmp-my-3';
+        // 与 conf.ignoreSelectors.repository 的描述元素保持一致
+        if (type === 'repository') return 'p.f4.my-3';
         if (type === 'gist') return '.gist-content [itemprop="about"]';
         return null;
     }
@@ -638,6 +680,8 @@
         setupMenuCommands();
         setupInitTrans();
         setupTurboEvents();
+        // 页面隐藏时立即持久化词条收集数据，避免防抖窗口内关页丢失记录
+        window.addEventListener('pagehide', () => MissedTermsManager.flush());
     }
 
     function initLangEnv() {

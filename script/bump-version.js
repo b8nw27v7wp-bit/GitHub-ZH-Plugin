@@ -9,6 +9,7 @@ const path = require('path');
 const BASE = path.join(__dirname, '..');
 const USER_JS = path.join(BASE, 'github-zh.user.js');
 const README = path.join(BASE, 'README.md');
+const HERMES = path.join(BASE, '.hermes.md');
 
 const level = (process.argv[2] || 'patch').toLowerCase();
 if (!['patch', 'minor', 'major'].includes(level)) {
@@ -45,5 +46,14 @@ if (fs.existsSync(README)) {
     fs.writeFileSync(README, readme);
 }
 
+// 3. 同步 .hermes.md 项目信息中的版本号
+if (fs.existsSync(HERMES)) {
+    let hermes = fs.readFileSync(HERMES, 'utf8');
+    const updated = hermes.replace(/(｜ )v\d+\.\d+\.\d+( ｜)/, `$1v${version}$2`);
+    if (updated !== hermes) {
+        fs.writeFileSync(HERMES, updated);
+    }
+}
+
 console.log(`版本 ${vm[0].replace('@version', '').trim()} → ${version} (${level})`);
-console.log('已同步: github-zh.user.js (@version / CONFIG.VERSION) + README 徽章');
+console.log('已同步: github-zh.user.js (@version / CONFIG.VERSION) + README 徽章 + .hermes.md');

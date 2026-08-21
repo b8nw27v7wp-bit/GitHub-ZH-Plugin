@@ -7,7 +7,7 @@
 ![version](https://img.shields.io/badge/version-1.3.1-blue)
 ![license](https://img.shields.io/github/license/b8nw27v7wp-bit/GitHub-ZH-Plugin)
 ![stars](https://img.shields.io/github/stars/b8nw27v7wp-bit/GitHub-ZH-Plugin)
-![tests](https://img.shields.io/badge/tests-85%20passed-brightgreen)
+![tests](https://img.shields.io/badge/tests-87%20passed-brightgreen)
 [![CI](https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/actions/workflows/ci.yml)
 
 **简体中文** · [English](#english)
@@ -20,7 +20,7 @@
 
 | 功能 | 说明 | 状态 |
 |------|------|------|
-| 🌐 **界面全面中文化** | 导航、按钮、菜单、提示、标题等 1100+ 词条 | ✅ |
+| 🌐 **界面全面中文化** | 导航、按钮、菜单、提示、标题等 900+ 词条 | ✅ |
 | ⚡ **动态内容实时翻译** | MutationObserver 监听 DOM 变化，新增内容即时翻译 | ✅ |
 | 🧠 **智能跳过** | 自动跳过代码块、搜索框、用户昵称、文件名等不应翻译的内容 | ✅ |
 | 🔄 **SPA 无刷新支持** | 适配 GitHub Turbo 页面切换，无需重载即可翻译新页面 | ✅ |
@@ -107,16 +107,16 @@ GitHub 页面加载 (document-start)
 - **不污染代码**：代码高亮、代码编辑器、Markdown 正文、文件名、用户昵称、搜索框等一律跳过
 - **远程翻译透明**：仅「仓库描述翻译」会将描述文本发送给第三方翻译服务（MyMemory），其余翻译全部在本地词典完成、零网络请求
 - **词条收集可控**：默认关闭；开启后仅记录页面路径 + 英文词条 + 出现位置（`pageType`/选择器/命中次数），不包含任何账户或个人隐私，可一键清空
-- **词典加载安全**：词典仅从仓库主源与 jsDelivr CDN（HTTPS）加载并写入本地缓存，无第三方脚本注入
+- **词典加载安全**：词典仅从本仓库主源与 jsDelivr CDN（HTTPS）加载，写入本地缓存前做结构校验；词典本身以脚本形式执行（`new Function`），来源限定为上述可信地址、无其他第三方注入。请仅在信任本仓库的前提下安装使用
 
 ## 📁 项目结构
 
 ```
 GitHub-ZH-Plugin/
 ├── github-zh.user.js      # 主脚本（油猴脚本入口，含词典加载容错）
-├── locales.js             # 翻译词典（1100+ 词条，29 个页面类型）
+├── locales.js             # 翻译词典（900+ 词条，28 个页面类型）
 ├── test/
-│   ├── github-zh.test.js  # 功能测试（78 项断言，真实执行主脚本核心函数）
+│   ├── github-zh.test.js  # 功能测试（87 项断言，真实执行主脚本核心函数）
 │   └── verify-locales.js  # 词典静态校验（7 项：重复键/空白键/正则组引用等）
 ├── script/
 │   ├── bump-version.js    # 版本递增脚本（同步 @version / CONFIG.VERSION / README）

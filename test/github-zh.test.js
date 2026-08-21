@@ -40,14 +40,15 @@ global.document = {
     querySelector() { return null; },
     addEventListener() {},
 };
-window_mock = {
+const window_mock = {
     location: __location,
     addEventListener() {},
 };
 global.window = window_mock;
 
 global.GM_getValue = (key, def) => def;
-global.GM_setValue = () => {};
+const gmStore = {}; // 捕获 GM_setValue 写入，供持久化断言使用
+global.GM_setValue = (key, val) => { gmStore[key] = val; };
 global.GM_addStyle = () => {};
 global.GM_registerMenuCommand = () => 0;
 global.GM_unregisterMenuCommand = () => {};
@@ -70,13 +71,22 @@ try {
     process.exit(1);
 }
 
-// 剥离元数据块并注入导出钩子
-const mainBody = mainCode
-    .replace(/\/\/ ==UserScript==[\s\S]*?\/\/ ==\/UserScript==/, '')
-    .replace(
-        /\n(\s*)\}\)\(\);\s*$/,
-        (m, indent) => `\n${indent}window.__ghzTest = {\n${indent}    transText, transTitle, buildPageConfig, detectPageType, updatePageConfig,\n${indent}    traverseNode, handleTextNode, MissedTermsManager, get featureSet() { return State.featureSet; },\n${indent}};\n${indent}})();`
-    );
+// 剥离元数据块并在 IIFE 结束前注入导出钩子（定位最后一个 })();，不依赖尾部空白格式）
+const HOOK = [
+    '    window.__ghzTest = {',
+    '        transText, transTitle, buildPageConfig, detectPageType, updatePageConfig,',
+    '        traverseNode, handleTextNode, MissedTermsManager, getDescSelector,',
+    '        get featureSet() { return State.featureSet; },',
+    '    };',
+    '',
+].join('\n');
+const closeIdx = mainCode.lastIndexOf('})();');
+let mainBody;
+if (closeIdx === -1) {
+    mainBody = mainCode + '\n;throw new Error("未找到 IIFE 结束标记");';
+} else {
+    mainBody = mainCode.slice(0, closeIdx) + HOOK + mainCode.slice(closeIdx);
+}
 
 try {
     new Function(mainBody)();
@@ -140,12 +150,37 @@ ok('正则: 3 files changed → 3 个文件变更', ghz.transText('3 files chang
 ok('纯中文不翻译', ghz.transText('这是一个测试') === false);
 ok('纯数字不翻译', ghz.transText('12345') === false);
 ok('未收录英文返回 false', ghz.transText('TotallyUnknownTermXYZ') === false);
+ok('空翻译词条 on 返回空字符串', ghz.transText('on') === '');
+
+// 空字符串是有效翻译值，必须写入文本节点
+{
+    const tn = { data: 'on', length: 2 };
+    ghz.handleTextNode(tn);
+    ok('空翻译写入文本节点 data', tn.data === '');
+    const tn2 = { data: 'Pull requests', length: 13 };
+    ghz.handleTextNode(tn2);
+    ok('普通翻译写入文本节点 data', tn2.data === '拉取请求');
+}
 
 // 禁用正则后，antian 规则不再生效
 ghz.featureSet.enable_RegExp = false;
 ok('关闭正则后 12 commits 不翻译', ghz.transText('12 commits') === false);
 ok('关闭正则后静态翻译仍生效', ghz.transText('Pull requests') === '拉取请求');
 ghz.featureSet.enable_RegExp = true;
+
+// ---------- 真实实现：描述选择器 ----------
+console.log('\n[getDescSelector 真实实现]');
+{
+    setPath('https://github.com/u/r', '/u/r');
+    ghz.updatePageConfig('测试');
+    ok('repository → p.f4.my-3（与 ignoreSelectors 一致）', ghz.getDescSelector() === 'p.f4.my-3');
+    setPath('https://gist.github.com/u/abc', '/u/abc');
+    ghz.updatePageConfig('测试');
+    ok('gist → .gist-content [itemprop="about"]', ghz.getDescSelector() === '.gist-content [itemprop="about"]');
+    // 恢复仓库上下文并重建配置，供后续区块使用
+    setPath('https://github.com/u/r', '/u/r');
+    ghz.updatePageConfig('测试');
+}
 
 // ---------- 真实实现：未命中词条收集 ----------
 console.log('\n[MissedTermsManager 真实实现]');
@@ -169,6 +204,28 @@ console.log('\n[MissedTermsManager 真实实现]');
     ok('getStats 返回统计', stats.paths >= 1 && stats.terms >= 2);
     ghz.MissedTermsManager.clear();
     clearTimeout(ghz.MissedTermsManager._timer);
+}
+
+// ---------- 真实实现：收集器上限与 flush ----------
+console.log('\n[MissedTermsManager 上限与 flush]');
+{
+    ghz.MissedTermsManager.clear();
+    const path = __location.pathname;
+    for (let i = 0; i < 2001; i++) {
+        ghz.MissedTermsManager.record('Term ' + i, {});
+    }
+    ok('记录数受 MAX_TOTAL(2000) 上限约束',
+        Object.keys(ghz.MissedTermsManager.data[path]).length === 2000);
+    // 腾出一个名额后可继续记录，证明拒绝源于上限而非逻辑失效
+    delete ghz.MissedTermsManager.data[path]['Term 0'];
+    ghz.MissedTermsManager.record('FlushProbe', {});
+    ok('上限内可继续记录新词条', !!ghz.MissedTermsManager.data[path]['FlushProbe']);
+    ghz.MissedTermsManager.flush();
+    ok('flush 立即持久化（防抖窗口外不丢数据）',
+        !!(gmStore['missedTerms'] && gmStore['missedTerms'][path]['FlushProbe']));
+    ghz.MissedTermsManager.clear();
+    ok('clear 后立即持久化空对象',
+        gmStore['missedTerms'] && Object.keys(gmStore['missedTerms']).length === 0);
 }
 
 // ---------- 真实实现：标题翻译（冒烟） ----------

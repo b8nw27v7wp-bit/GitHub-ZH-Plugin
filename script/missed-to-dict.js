@@ -28,7 +28,8 @@ function guessPageType(pathname) {
     if (!pathname) return 'repository';
     if (/^\/settings/.test(pathname)) return 'settings';
     if (/\/issues\b/.test(pathname)) return 'repository/issues';
-    if (/\/pull(s)?\b/.test(pathname)) return 'repository/pulls';
+    if (/\/pulls\b/.test(pathname)) return 'repository/pulls';
+    if (/\/pull\b/.test(pathname)) return 'repository/pull'; // 详情页 /pull/1
     if (pathname === '/') return 'dashboard';
     return 'repository';
 }
@@ -72,6 +73,8 @@ if (types.length === 0) {
 }
 
 let total = 0;
+// 转义单引号与反斜杠，保证草稿可直接粘贴进 locales.js 单引号字面量
+const esc = s => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 console.log(`// 来自未命中词条收集的翻译草稿（${argFile}）`);
 console.log(`// 用法：把下方条目粘到 locales.js 对应页面类型的 static 块，填写 CHANGE_ME 后提交`);
 console.log('');
@@ -82,7 +85,7 @@ for (const type of types) {
     console.log(`    // ${type}  (${entries.length} 条)`);
     for (const [text, rec] of entries) {
         const pathsHint = [...rec.paths].slice(0, 3).join(', ');
-        console.log(`    '${text}': 'CHANGE_ME', // 命中 ${rec.count} 次 | ${pathsHint}`);
+        console.log(`    '${esc(text)}': 'CHANGE_ME', // 命中 ${rec.count} 次 | ${pathsHint}`);
     }
     console.log('');
 }

@@ -99,7 +99,7 @@ function checkRefs(label, patternRe, replacement) {
         const n = parseInt(ref.slice(1), 10);
         if (n > groups) {
             badRefs++;
-            ok(`${label}: 替换串近照引用 $${n} 但正则只有 ${groups} 组`, false);
+            ok(`${label}: 替换串引用越界 $${n}，但正则只有 ${groups} 组`, false);
         }
     }
 }
@@ -149,9 +149,5 @@ console.log(`  页面/static 块数: ${totalPages}，词条总数: ${totalEntrie
 
 console.log(`\n${'='.repeat(50)}`);
 console.log(`结果: ${pass} 通过, ${fail} 失败, ${warn} 软警告`);
-if (fail > 0) process.exit(1);
-if (warn > 0) {
-    console.log('存在软警告（不影响构建，建议排查上方 ⚠ 项）');
-    process.exit(1);
-}
-process.exit(0);
+if (warn > 0) console.log('存在软警告（不影响结果，建议排查上方 ⚠ 项）');
+process.exit(fail > 0 ? 1 : 0);
