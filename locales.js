@@ -426,6 +426,25 @@ const LOCALES = {
             'You': '你',
             'Your': '你的',
 
+            // 新版界面（2025-2026 改版）
+            'Create new...': '新建…',
+            'New repository': '新仓库',
+            'Import repository': '导入仓库',
+            'New codespace': '新建代码空间',
+            'New gist': '新建代码片段',
+            'New organization': '新建组织',
+            'New project': '新建项目',
+            'New agent task': '新建智能体任务',
+            'Copilot Chat': 'Copilot 聊天',
+            'Ask Copilot': '询问 Copilot',
+            'Agents': '智能体',
+            'Learn more': '了解更多',
+            'Read more': '阅读更多',
+            'See more': '查看更多',
+            // 顶栏通知面板提示
+            'You have no unread notifications': '您没有未读通知',
+            'You have unread notifications': '您有未读通知',
+
             // 时间相关
             'just now': '刚刚',
             'less than a minute ago': '不到 1 分钟前',
@@ -488,6 +507,22 @@ const LOCALES = {
             'Watchers': '关注者',
             'Pinned': '已置顶',
             'Up to date': '已是最新',
+            // 新版首页功能区与 Copilot 入口
+            'Ask': '询问',
+            'Task': '任务',
+            'Write code': '编写代码',
+            'Models': '模型',
+            'Create issue': '创建议题',
+            'Agent sessions': '智能体会话',
+            'Start a session': '启动会话',
+            'Open in Copilot Chat': '在 Copilot Chat 中打开',
+            'Assign to Copilot': '分配给 Copilot',
+            'uses AI. Check for mistakes.': '由 AI 生成。请注意甄别。',
+            // 新版 feed
+            'Feed filters': '动态筛选器',
+            'Announcements': '公告',
+            'Send feedback': '发送反馈',
+            'Try the new experience': '体验新版',
         },
         regexp: [
             [new RegExp('^(\\d+) (?:results?)'), '$1 个结果'],
@@ -747,6 +782,12 @@ const LOCALES = {
             '@Mentions': '@提及',
             'No new notifications': '没有新通知',
             'Global': '全局',
+            // 侧栏筛选器（新版收件箱）
+            'Filters': '筛选器',
+            'Saved': '已保存',
+            // 批量操作下拉菜单
+            'Unsubscribe': '退订',
+            'Select all': '全选',
         },
     },
 
@@ -1246,6 +1287,13 @@ const LOCALES = {
             'Remaining': '剩余',
             'Quota': '配额',
             'Reset date': '重置日期',
+            // 设置页与聊天入口（2025 改版）
+            'Getting started': '开始使用',
+            'Start free trial': '开始免费试用',
+            'Go to Copilot': '前往 Copilot',
+            'Agent tasks': '智能体任务',
+            'Copilot coding agent': 'Copilot 编程智能体',
+            'New conversation': '新对话',
         },
     },
 

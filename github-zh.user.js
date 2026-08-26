@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub 中文化
 // @namespace    https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin
-// @version      1.3.1
+// @version      1.3.2
 // @description  GitHub 界面中文化插件 — 轻量、实时、智能。支持动态内容翻译、描述一键翻译、未命中词条收集。
 // @author       b8nw27v7wp-bit
 // @license      MIT
@@ -29,7 +29,7 @@
     const CONFIG = {
         LANG: 'zh-CN',
         DEV: false,
-        VERSION: '1.3.1',
+        VERSION: '1.3.2',
         // 翻译引擎（仓库描述远程翻译，可自由替换）
         TRANS_ENGINES: {
             mymemory: {

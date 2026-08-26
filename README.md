@@ -4,7 +4,7 @@
 
 > 让 GitHub 界面全面中文化 — 轻量 · 实时 · 智能
 
-![version](https://img.shields.io/badge/version-1.3.1-blue)
+![version](https://img.shields.io/badge/version-1.3.2-blue)
 ![license](https://img.shields.io/github/license/b8nw27v7wp-bit/GitHub-ZH-Plugin)
 ![stars](https://img.shields.io/github/stars/b8nw27v7wp-bit/GitHub-ZH-Plugin)
 ![tests](https://img.shields.io/badge/tests-87%20passed-brightgreen)
@@ -20,7 +20,7 @@
 
 | 功能 | 说明 | 状态 |
 |------|------|------|
-| 🌐 **界面全面中文化** | 导航、按钮、菜单、提示、标题等 900+ 词条 | ✅ |
+| 🌐 **界面全面中文化** | 导航、按钮、菜单、提示、标题等 930+ 词条 | ✅ |
 | ⚡ **动态内容实时翻译** | MutationObserver 监听 DOM 变化，新增内容即时翻译 | ✅ |
 | 🧠 **智能跳过** | 自动跳过代码块、搜索框、用户昵称、文件名等不应翻译的内容 | ✅ |
 | 🔄 **SPA 无刷新支持** | 适配 GitHub Turbo 页面切换，无需重载即可翻译新页面 | ✅ |
@@ -114,7 +114,7 @@ GitHub 页面加载 (document-start)
 ```
 GitHub-ZH-Plugin/
 ├── github-zh.user.js      # 主脚本（油猴脚本入口，含词典加载容错）
-├── locales.js             # 翻译词典（900+ 词条，28 个页面类型）
+├── locales.js             # 翻译词典（930+ 词条，28 个页面类型）
 ├── test/
 │   ├── github-zh.test.js  # 功能测试（87 项断言，真实执行主脚本核心函数）
 │   └── verify-locales.js  # 词典静态校验（7 项：重复键/空白键/正则组引用等）
@@ -162,6 +162,7 @@ public: {
 
 ## 🔄 更新日志
 
+- **v1.3.2**（2026-08）：补充 GitHub 近期改版界面词条约 40 条：通知收件箱（侧栏筛选器 / 批量操作 / 已保存）、仪表盘（Copilot 快捷入口、智能体会话、新版动态 feed 筛选器）、Copilot 页面与聊天面板（编程智能体、免费试用）、顶栏「新建」菜单及全局通用文案；词典总数 900+ → 930+
 - **v1.3.1**（2026-08）：词典加载容错（多 CDN 降级 + 本地缓存 + 自动重试）；词条收集升级（附带页面类型 / 选择器 / 命中次数）；修复 `/settings/profile` 页面类型误判、标题正则捕获组缺失等 bug；新增「真实执行主脚本」测试与 `verify-locales.js` 静态校验；新增 `bump-version.js` / `missed-to-dict.js` 工具
 - **v1.3.0**：新增 issues / pulls / commit / actions / wiki / packages 边缘页面翻译
 - **v1.1.0**：架构升级，支持动态内容翻译、描述一键翻译、未命中词条收集
