@@ -75,7 +75,7 @@ try {
 const HOOK = [
     '    window.__ghzTest = {',
     '        transText, transTitle, buildPageConfig, detectPageType, updatePageConfig,',
-    '        traverseNode, handleTextNode, MissedTermsManager, getDescSelector,',
+    '        traverseNode, handleTextNode, handleElementNode, MissedTermsManager, getDescSelector,',
     '        get featureSet() { return State.featureSet; },',
     '    };',
     '',
@@ -171,6 +171,17 @@ console.log('\n[新词典端到端]');
     // 恢复仓库上下文供后续区块使用
     setPath('https://github.com/u/r', '/u/r');
     ghz.updatePageConfig('测试');
+}
+
+// ---------- 真实实现：工具提示 aria-label（新旧兼容） ----------
+console.log('\n[handleElementNode 工具提示]');
+{
+    const tip = { tagName: 'TOOL-TIP', className: '', dataset: {}, ariaLabel: 'Star' };
+    ghz.handleElementNode(tip);
+    ok('tool-tip 元素 aria-label 翻译', tip.ariaLabel === '星标');
+    const legacy = { tagName: 'SPAN', className: 'tooltipped tooltipped-n', dataset: {}, title: '', ariaLabel: 'Issues' };
+    ghz.handleElementNode(legacy);
+    ok('tooltipped class 元素 aria-label 翻译', legacy.ariaLabel === '议题');
 }
 
 // ---------- 真实实现：transText ----------

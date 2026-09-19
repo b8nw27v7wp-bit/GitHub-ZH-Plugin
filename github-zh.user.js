@@ -375,8 +375,8 @@
             transAttrs(node.dataset, 'visibleText');
         }
 
-        // 工具提示
-        if (/tooltipped/.test(node.className)) {
+        // 工具提示（兼容旧版 tooltipped class 与新版 tool-tip 自定义元素）
+        if (tag === 'TOOL-TIP' || /tooltipped/.test(node.className)) {
             transAttrs(node, 'ariaLabel');
         }
     }

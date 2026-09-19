@@ -7,7 +7,7 @@
 ![version](https://img.shields.io/badge/version-1.3.2-blue)
 ![license](https://img.shields.io/github/license/b8nw27v7wp-bit/GitHub-ZH-Plugin)
 ![stars](https://img.shields.io/github/stars/b8nw27v7wp-bit/GitHub-ZH-Plugin)
-![tests](https://img.shields.io/badge/tests-112%20passed-brightgreen)
+![tests](https://img.shields.io/badge/tests-114%20passed-brightgreen)
 [![CI](https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/actions/workflows/ci.yml)
 
 **简体中文** · [English](#english)
@@ -123,7 +123,7 @@ GitHub-ZH-Plugin/
 ├── github-zh.user.js      # 主脚本（油猴脚本入口，含词典加载容错）
 ├── locales.js             # 翻译词典（1100+ 词条，47 个页面类型）
 ├── test/
-│   ├── github-zh.test.js  # 功能测试（112 项断言，真实执行主脚本核心函数）
+│   ├── github-zh.test.js  # 功能测试（114 项断言，真实执行主脚本核心函数）
 │   └── verify-locales.js  # 词典静态校验（7 项：重复键/空白键/正则组引用等）
 ├── script/
 │   ├── bump-version.js    # 版本递增脚本（同步 @version / CONFIG.VERSION / README）
