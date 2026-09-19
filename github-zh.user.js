@@ -204,7 +204,8 @@
     function buildPageConfig(pageType) {
         // 词典为扁平结构：LOCALES.public / LOCALES.repository / LOCALES.settings ...
         const publicZh = LOCALES.public || {};
-        const pageZh = LOCALES[pageType] || {};
+        // 无专属词典的细分类型回退到首段通用词典（如 orgs/teams → orgs）
+        const pageZh = LOCALES[pageType] || LOCALES[pageType.split('/')[0]] || {};
 
         // 合并忽略选择器
         const allIgnoreMutation = [

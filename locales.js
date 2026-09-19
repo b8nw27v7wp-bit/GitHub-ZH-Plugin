@@ -120,6 +120,9 @@ const LOCALES = {
             'marketplace',                   // 市场
             'copilot',                       // Copilot
             'pulls',                         // 拉取请求列表
+            'issues',                        // 议题仪表盘（2025 改版后高度动态化）
+            'feed',                          // 动态 Feed（2025 改版）
+            'repos',                         // 仓库总览（2026 GA）
         ],
     },
 
@@ -523,10 +526,31 @@ const LOCALES = {
             'Announcements': '公告',
             'Send feedback': '发送反馈',
             'Try the new experience': '体验新版',
+            // 新版 My Work 选项卡（2025-2026 改版）
+            'My Work': '我的工作',
+            'Create a view': '创建视图',
+            'Save view': '保存视图',
+            'Saved views': '已保存的视图',
+            'Customize': '自定义',
         },
         regexp: [
             [new RegExp('^(\\d+) (?:results?)'), '$1 个结果'],
         ],
+    },
+
+    // ==================== 动态 Feed（github.com/feed） ====================
+    feed: {
+        title: {
+            regexp: [
+                [new RegExp('^Feed\\s*·\\s*GitHub$'), '动态 · GitHub'],
+            ],
+        },
+        static: {
+            'Feed': '动态',
+            'Feed filters': '动态筛选器',
+            'Following': '正在关注',
+            'Send feedback': '发送反馈',
+        },
     },
 
     // ==================== 仓库页面 ====================
@@ -728,6 +752,22 @@ const LOCALES = {
             'Delete your account': '删除你的账户',
             'Danger zone': '危险区域',
             'Change your avatar': '更改头像',
+
+            // Copilot 与安全（2025-2026 新增设置区）
+            'Rulesets': '规则集',
+            'New ruleset': '新建规则集',
+            'Models': '模型',
+            'Content exclusions': '内容排除',
+            'Budgets': '预算',
+            'Usage report': '用量报告',
+            'Custom properties': '自定义属性',
+            'Allowed values': '允许值',
+            'Multi select': '多选',
+            'Merge queue': '合并队列',
+            'Advanced Security': '高级安全',
+            'Secret Protection': '密钥保护',
+            'Code Security': '代码安全',
+            'Push protection': '推送保护',
         },
         regexp: [],
     },
@@ -802,6 +842,10 @@ const LOCALES = {
             'Transfer issue': '转让议题',
             'Reopen issue': '重新打开议题',
             'Close issue': '关闭议题',
+            // 新版 Issues 仪表盘（2025 改版）
+            'Recent activity': '最近活动',
+            'Recently viewed': '最近查看',
+            'Advanced search': '高级搜索',
         },
         regexp: [
             [new RegExp('^(\\d+) (?:Open)'), '$1 个打开'],
@@ -827,6 +871,18 @@ const LOCALES = {
             'Request reviewers': '请求审查',
             'Convert to draft': '转为草稿',
             'Mark as ready for review': '标记为准备审查',
+            // 新版 PR 仪表盘（Inbox + Saved views，2026-07 GA）
+            'Inbox': '收件箱',
+            'Saved views': '已保存的视图',
+            'Create a view': '创建视图',
+            'Save view': '保存视图',
+            'Authored by me': '我创建的',
+            'Assigned to me': '指派给我的',
+            'Involves me': '与我相关的',
+            'Review requested': '请求审查的',
+            'Ready to merge': '可合并',
+            'Merge queue': '合并队列',
+            'Recent activity': '最近活动',
         },
     },
 
@@ -862,6 +918,10 @@ const LOCALES = {
             'You choose who can see and commit to this repository': '你选择谁可以看到和提交到此仓库',
             'Initialize this repository with:': '使用以下内容初始化仓库：',
             'Add a README file': '添加 README 文件',
+            'Add .gitignore': '添加 .gitignore',
+            'Choose a license': '选择许可证',
+            'License': '许可证',
+            'Include all branches': '包含所有分支',
             'Create repository': '创建仓库',
         },
     },
@@ -929,6 +989,22 @@ const LOCALES = {
             'Reopen without comment': '直接重新打开',
             'Created by': '由...创建',
             'edited': '已编辑',
+            // 子议题 / 类型 / 依赖（2025 GA）
+            'Sub-issues': '子议题',
+            'Create sub-issue': '创建子议题',
+            'Add existing issue': '添加现有议题',
+            'Convert to sub-issue': '转换为子议题',
+            'Blocked by': '被阻止',
+            'Blocking': '阻止中',
+            'Duplicate': '重复',
+            'Mark as duplicate': '标记为重复',
+            'Feature': '功能',
+            'Task': '任务',
+            'Close as completed': '以已完成关闭',
+            'Close as not planned': '以不计划关闭',
+            'Close as duplicate': '以重复关闭',
+            'Create more': '继续创建',
+            'Parent': '父议题',
         },
         regexp: [
             [new RegExp('^(\\d+) Open$'), '$1 个开启'],
@@ -1002,6 +1078,7 @@ const LOCALES = {
             'View git blame': '查看 git 责备视图',
             'No one—you’re good!': '无人—一切就绪！',
             'No reviewers': '无审查者',
+            'Merge queue': '合并队列',
         },
         regexp: [
             [new RegExp('^(\\d+) Open$'), '$1 个开启'],
@@ -1123,6 +1200,9 @@ const LOCALES = {
             'Deploy to GitHub Pages': '部署到 GitHub Pages',
             'Create new job': '新建作业',
             'Build': '构建',
+            'Review deployments': '审核部署',
+            'Required reviewers': '必需的审核者',
+            'Approve and deploy': '批准并部署',
         },
         regexp: [
             [new RegExp('^(\\d+) workflow runs?$'), '$1 个工作流运行'],
@@ -1215,6 +1295,7 @@ const LOCALES = {
             'This package has no source repository': '此包没有源仓库',
             'Registry': '注册表',
             'Container': '容器',
+            'Trusted publishing': '可信发布',
         },
         regexp: [
             [new RegExp('^(\\d+) downloads?$'), '$1 次下载'],
@@ -1294,6 +1375,14 @@ const LOCALES = {
             'Agent tasks': '智能体任务',
             'Copilot coding agent': 'Copilot 编程智能体',
             'New conversation': '新对话',
+            // 编程智能体会话（2025-2026）
+            'Sessions': '会话',
+            'Session logs': '会话日志',
+            'Custom agent': '自定义智能体',
+            'Custom agents': '自定义智能体',
+            'Models': '模型',
+            'MCP servers': 'MCP 服务器',
+            'Take over': '接管',
         },
     },
 
@@ -1462,6 +1551,7 @@ const LOCALES = {
         title: {
             regexp: [
                 [new RegExp('^(.+?)\\s*Security\\s*·\\s*GitHub$'), '$1 安全 · GitHub'],
+                [new RegExp('^(.+?)\\s*Security and quality\\s*·\\s*GitHub$'), '$1 安全与质量 · GitHub'],
             ],
         },
         static: {
@@ -1474,6 +1564,27 @@ const LOCALES = {
             'Vulnerabilities': '漏洞',
             'Secrets': '密钥',
             'Dismiss': '忽略',
+            // 规则集与新版安全能力（2025-2026）
+            'Security and quality': '安全与质量',
+            'Rulesets': '规则集',
+            'New ruleset': '新建规则集',
+            'Enforcement status': '强制执行状态',
+            'Bypass list': '绕过名单',
+            'Secret Protection': '密钥保护',
+            'Code Security': '代码安全',
+            'Advanced Security': '高级安全',
+            'Push protection': '推送保护',
+            'Copilot Autofix': 'Copilot 自动修复',
+            'Autofix': '自动修复',
+            'Security campaigns': '安全活动',
+            'Mitigated': '已缓解',
+            'Custom patterns': '自定义模式',
+            'Dependabot': 'Dependabot',
+            'Auto-triage': '自动分类',
+            'Snooze': '延后处理',
+            'CodeQL': 'CodeQL',
+            'Require code scanning results': '需要代码扫描结果',
+            'Merge protection': '合并保护',
         },
     },
 
@@ -1489,8 +1600,223 @@ const LOCALES = {
             'Board': '看板',
             'Table': '表格',
             'Roadmap': '路线图',
+            'Insights': '洞察',
+            'Views': '视图',
             'View settings': '查看设置',
             'No items to show': '暂无内容',
+        },
+    },
+
+    // ==================== 拉取请求详情页 ====================
+    'repository/pull': {
+        title: {
+            regexp: [
+                [new RegExp('^(.+?)\\s*·\\s*Pull Request\\s*#(\\d+)\\s*·\\s*GitHub$'), '$1 · 拉取请求 #$2 · GitHub'],
+            ],
+        },
+        static: {
+            'Conversation': '对话',
+            'Checks': '检查',
+            'Files changed': '文件更改',
+            'Review changes': '审查更改',
+            'Request changes': '请求更改',
+            'Merge pull request': '合并拉取请求',
+            'Squash and merge': '压缩并合并',
+            'Rebase and merge': '变基并合并',
+            'Close pull request': '关闭拉取请求',
+            'Reopen pull request': '重新打开拉取请求',
+            'Update branch': '更新分支',
+            'Delete branch': '删除分支',
+            'Mark as ready for review': '标记为准备审查',
+            'Convert to draft': '转为草稿',
+            'Ready for review': '准备审查',
+            'Added to merge queue': '已加入合并队列',
+            'Merge when ready': '就绪即合并',
+        },
+    },
+
+    // ==================== 文件浏览页 ====================
+    'repository/tree': {
+        static: {
+            'Add file': '添加文件',
+            'Create new file': '创建新文件',
+            'Upload files': '上传文件',
+            'Find file': '查找文件',
+            'Go to file': '转到文件',
+            'Latest commit': '最新提交',
+            'Commit history': '提交历史',
+            'History': '历史',
+        },
+    },
+
+    // ==================== 代码视图页 ====================
+    'repository/blob': {
+        static: {
+            'Copy path': '复制路径',
+            'Copy permalink': '复制永久链接',
+            'View raw': '查看原始',
+            'View blame': '查看责备视图',
+            'History': '历史',
+            'Add file': '添加文件',
+        },
+    },
+
+    // ==================== 仓库设置页 ====================
+    'repository/settings': {
+        static: {
+            'Access': '访问',
+            'Collaborators': '协作者',
+            'Moderation options': '审核选项',
+            'Rulesets': '规则集',
+            'New ruleset': '新建规则集',
+            'Branch protection rules': '分支保护规则',
+            'Runners': '运行器',
+            'Secrets and variables': '密钥和变量',
+            'Environments': '环境',
+            'Deploy keys': '部署密钥',
+            'Advanced Security': '高级安全',
+            'Secret Protection': '密钥保护',
+            'Code Security': '代码安全',
+            'Merge queue': '合并队列',
+            'Merge method': '合并方式',
+            'Danger Zone': '危险区域',
+            'Delete this repository': '删除此仓库',
+            'Change repository name': '更改仓库名称',
+        },
+    },
+
+    // ==================== 组织页面（各 orgs/* 类型回退共用） ====================
+    orgs: {
+        static: {
+            'People': '成员',
+            'Outside collaborators': '外部协作者',
+            'Custom properties': '自定义属性',
+            'Allowed values': '允许值',
+            'New property': '新建属性',
+            'Audit log': '审计日志',
+            'Verified': '已验证',
+            'Member privileges': '成员权限',
+        },
+    },
+
+    // ==================== 智能体会话页 ====================
+    'repository/agents': {
+        static: {
+            'Sessions': '会话',
+            'Session logs': '会话日志',
+            'Custom agent': '自定义智能体',
+            'Take over': '接管',
+        },
+    },
+
+    // ==================== 仓库总览页（github.com/repos） ====================
+    repos: {
+        title: {
+            static: {
+                'Your repositories': '你的仓库',
+            },
+        },
+        static: {
+            'My contributions': '我的贡献',
+            'My repositories': '我的仓库',
+            'My forks': '我的复刻',
+            'Admin access': '管理员权限',
+        },
+    },
+
+    // ==================== 标签管理页 ====================
+    'repository/labels': {
+        static: {
+            'New label': '新标签',
+            'Search labels': '搜索标签',
+            'Default': '默认',
+        },
+    },
+
+    // ==================== 里程碑页 ====================
+    'repository/milestones': {
+        static: {
+            'New milestone': '新里程碑',
+            'Create a milestone': '创建里程碑',
+            'Due date': '截止日期',
+            'No due date': '无截止日期',
+        },
+    },
+
+    // ==================== 仓库图表页 ====================
+    'repository/graphs': {
+        static: {
+            'Insights': '洞察',
+            'Traffic': '流量',
+            'Contributors': '贡献者',
+        },
+    },
+
+    // ==================== 仓库人脉页 ====================
+    'repository/network': {
+        static: {
+            'Network': '网络',
+            'Members': '成员',
+        },
+    },
+
+    // ==================== 社区档案页 ====================
+    'repository/community': {
+        static: {
+            'Community profile': '社区档案',
+        },
+    },
+
+    // ==================== 仓库讨论页 ====================
+    'repository/discussions': {
+        static: {
+            'New discussion': '新建讨论',
+            'Categories': '类别',
+            'Announcements': '公告',
+            'General': '常规',
+            'Q&A': '问答',
+            'Answered': '已回答',
+            'Unanswered': '未回答',
+            'Upvote': '赞同',
+            'Mark as answer': '标记为答案',
+        },
+    },
+
+    // ==================== 在线开发环境页 ====================
+    'repository/codespaces': {
+        static: {
+            'New codespace': '新建 Codespace',
+            'Machine type': '机器类型',
+        },
+    },
+
+    // ==================== 工作流运行页 ====================
+    'repository/runs': {
+        static: {
+            'Jobs': '作业',
+            'Annotations': '注释',
+            'Re-run failed jobs': '重新运行失败的作业',
+            'Summary': '摘要',
+        },
+    },
+
+    // ==================== 关注者 / 星标者页 ====================
+    'repository/watchers': {
+        static: {
+            'Watchers': '关注者',
+        },
+    },
+    'repository/stargazers': {
+        static: {
+            'Stargazers': '星标者',
+        },
+    },
+
+    // ==================== 代码片段页 ====================
+    gist: {
+        static: {
+            'Create a public gist': '创建公开代码片段',
+            'Create a secret gist': '创建私密代码片段',
         },
     },
 };

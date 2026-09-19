@@ -110,7 +110,13 @@ ok('公共词条 >= 50', Object.keys(LOCALES.public.static).length >= 50);
 
 const pageTypes = ['dashboard', 'repository', 'page-profile', 'settings', 'search',
     'notifications', 'issues', 'pulls', 'session-authentication', 'explore',
-    'trending', 'discussions', 'copilot', 'sponsors', 'repository/new'];
+    'trending', 'discussions', 'copilot', 'sponsors', 'repository/new',
+    'feed', 'repos', 'gist', 'orgs', 'repository/pull', 'repository/tree',
+    'repository/blob', 'repository/settings', 'repository/agents',
+    'repository/labels', 'repository/milestones', 'repository/graphs',
+    'repository/network', 'repository/community', 'repository/discussions',
+    'repository/codespaces', 'repository/runs', 'repository/watchers',
+    'repository/stargazers'];
 for (const pt of pageTypes) {
     ok(`页面类型 ${pt} 有 static 词典`, !!LOCALES[pt]?.static && Object.keys(LOCALES[pt].static).length > 0);
 }
@@ -137,6 +143,34 @@ console.log('\n[buildPageConfig 真实实现]');
         cfg.regexpRules.length === LOCALES.repository.regexp.length + LOCALES.public.regexp.length);
     ok('ignoreSelectors 为合并串', typeof cfg.ignoreSelectors === 'string');
     ok('characterData 默认 false', cfg.characterData === false);
+}
+
+// ---------- 真实实现：页面配置首段回退 ----------
+console.log('\n[buildPageConfig 首段回退]');
+{
+    const orgCfg = ghz.buildPageConfig('orgs/teams');
+    ok('orgs/teams 回退到 orgs 词典 (People → 成员)', orgCfg.staticDict['People'] === '成员');
+    const starsCfg = ghz.buildPageConfig('page-profile/stars');
+    ok('page-profile/stars 回退到 page-profile 词典 (Followers → 关注者)', starsCfg.staticDict['Followers'] === '关注者');
+    const unknownCfg = ghz.buildPageConfig('no/such-type');
+    ok('未知类型仅含公共词典', unknownCfg.staticDict['Pull requests'] === '拉取请求' && unknownCfg.staticDict['People'] === undefined);
+}
+
+// ---------- 真实实现：新词典端到端 ----------
+console.log('\n[新词典端到端]');
+{
+    setPath('https://github.com/u/r/pull/1', '/u/r/pull/1');
+    ghz.updatePageConfig('测试');
+    ok('repository/pull: Added to merge queue → 已加入合并队列',
+        ghz.transText('Added to merge queue') === '已加入合并队列');
+    setPath('https://github.com/orgs/octo/people', '/orgs/octo/people');
+    ok('组织成员页识别为 orgs/people', ghz.detectPageType() === 'orgs/people');
+    ghz.updatePageConfig('测试');
+    ok('orgs/people 复用 orgs 回退词典 (Audit log → 审计日志)',
+        ghz.transText('Audit log') === '审计日志');
+    // 恢复仓库上下文供后续区块使用
+    setPath('https://github.com/u/r', '/u/r');
+    ghz.updatePageConfig('测试');
 }
 
 // ---------- 真实实现：transText ----------

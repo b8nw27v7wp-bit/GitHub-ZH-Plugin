@@ -52,7 +52,7 @@ node test/verify-locales.js
 ```
 GitHub-ZH-Plugin/
 ├── github-zh.user.js      # 主脚本（油猴入口，含词典加载容错；只在改逻辑时动它）
-├── locales.js             # 翻译词典（900+ 词条，28 个页面类型，37 个 static 块）
+├── locales.js             # 翻译词典（1100+ 词条，47 个页面类型，57 个 static 块）
 ├── test/
 │   ├── github-zh.test.js  # 功能测试（真实执行主脚本核心函数）
 │   └── verify-locales.js  # 词典静态校验（重复键 / 空白键 / 正则组引用等）
@@ -126,7 +126,7 @@ repository: {
 
 `conf.rePagePath` / `conf.rePagePathRepo` 定义了 URL 解析规则，具体页面类型包括：
 
-`dashboard`、`repository`、`page-profile`、`settings`、`search`、`notifications`、`issues`、`pulls`、`session-authentication`、`explore`、`discussions`、`copilot`、`sponsors`、`trending`、`repository/new`、`repository/issues`、`repository/pulls`、`repository/commit`、`repository/actions`、`repository/wiki`、`repository/packages`、`repository/releases`、`repository/compare`、`repository/blame`、`repository/branches`、`repository/tags`、`repository/security`、`repository/projects`
+`dashboard`、`feed`、`repos`、`repository`、`page-profile`、`settings`、`search`、`notifications`、`issues`、`pulls`、`session-authentication`、`explore`、`discussions`、`copilot`、`sponsors`、`trending`、`gist`、`orgs`（各 `orgs/*` 类型回退共用）、`repository/new`、`repository/issues`、`repository/pulls`、`repository/pull`、`repository/tree`、`repository/blob`、`repository/settings`、`repository/commit`、`repository/actions`、`repository/runs`、`repository/wiki`、`repository/packages`、`repository/releases`、`repository/compare`、`repository/blame`、`repository/branches`、`repository/tags`、`repository/labels`、`repository/milestones`、`repository/security`、`repository/projects`、`repository/graphs`、`repository/network`、`repository/community`、`repository/discussions`、`repository/codespaces`、`repository/agents`、`repository/watchers`、`repository/stargazers`
 
 ## 代码规范
 

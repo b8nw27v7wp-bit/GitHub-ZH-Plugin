@@ -7,7 +7,7 @@
 ![version](https://img.shields.io/badge/version-1.3.2-blue)
 ![license](https://img.shields.io/github/license/b8nw27v7wp-bit/GitHub-ZH-Plugin)
 ![stars](https://img.shields.io/github/stars/b8nw27v7wp-bit/GitHub-ZH-Plugin)
-![tests](https://img.shields.io/badge/tests-87%20passed-brightgreen)
+![tests](https://img.shields.io/badge/tests-112%20passed-brightgreen)
 [![CI](https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/b8nw27v7wp-bit/GitHub-ZH-Plugin/actions/workflows/ci.yml)
 
 **简体中文** · [English](#english)
@@ -20,7 +20,7 @@
 
 | 功能 | 说明 | 状态 |
 |------|------|------|
-| 🌐 **界面全面中文化** | 导航、按钮、菜单、提示、标题等 930+ 词条 | ✅ |
+| 🌐 **界面全面中文化** | 导航、按钮、菜单、提示、标题等 1100+ 词条 | ✅ |
 | ⚡ **动态内容实时翻译** | MutationObserver 监听 DOM 变化，新增内容即时翻译 | ✅ |
 | 🧠 **智能跳过** | 自动跳过代码块、搜索框、用户昵称、文件名等不应翻译的内容 | ✅ |
 | 🔄 **SPA 无刷新支持** | 适配 GitHub Turbo 页面切换，无需重载即可翻译新页面 | ✅ |
@@ -63,6 +63,13 @@
 | **标签管理** | `repository/tags` | ✅ |
 | **安全页面** | `repository/security` | ✅ |
 | **项目看板** | `repository/projects` | ✅ |
+| 动态 Feed | `feed` | ✅ |
+| 仓库总览 | `repos` | ✅ |
+| 组织页面 | `orgs/*`（回退共用词典） | ✅ |
+| PR 详情 / 文件浏览 / 代码视图 | `repository/pull` / `tree` / `blob` | ✅ |
+| 仓库设置 | `repository/settings` | ✅ |
+| 智能体会话 | `repository/agents` | ✅ |
+| 标签 / 里程碑 / 讨论 / 运行 / 代码片段 | `repository/labels` 等 / `gist` | ✅ |
 
 ## 🔧 工作原理
 
@@ -114,9 +121,9 @@ GitHub 页面加载 (document-start)
 ```
 GitHub-ZH-Plugin/
 ├── github-zh.user.js      # 主脚本（油猴脚本入口，含词典加载容错）
-├── locales.js             # 翻译词典（930+ 词条，28 个页面类型）
+├── locales.js             # 翻译词典（1100+ 词条，47 个页面类型）
 ├── test/
-│   ├── github-zh.test.js  # 功能测试（87 项断言，真实执行主脚本核心函数）
+│   ├── github-zh.test.js  # 功能测试（112 项断言，真实执行主脚本核心函数）
 │   └── verify-locales.js  # 词典静态校验（7 项：重复键/空白键/正则组引用等）
 ├── script/
 │   ├── bump-version.js    # 版本递增脚本（同步 @version / CONFIG.VERSION / README）
